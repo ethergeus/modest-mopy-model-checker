@@ -1,0 +1,35 @@
+action s, r;
+
+int(0..4) state;
+const int CHOOSE = 0, SAFE = 1, RISK = 2, SUCCESS = 3, FAIL = 4;
+
+transient int(0..8) reward = 0;
+
+property P1 = Pmax(<> (state == SUCCESS));
+property P2 = Pmax(<> (state == FAIL));
+property P3 = Xmin(S(reward), state == SUCCESS);
+
+process TauLoop() {
+    do { :: tau }
+}
+
+do {
+:: when(state == CHOOSE)
+    alt {
+        :: s {= state = SAFE =}
+        :: r {= state = RISK =}
+    }
+:: when(state == SAFE)
+    tau palt {
+        :0.1: {= state = SUCCESS, reward = 2 =}; do { :: tau }
+        :0.9: {= state = CHOOSE =}
+    }
+:: when(state == RISK)
+    alt {
+        :: s {= state = CHOOSE =}
+        :: r palt {
+            :0.5: {= state = SUCCESS, reward = 8 =}; do { :: tau }
+            :0.5: {= state = FAIL =}; do { :: tau }
+        }
+    }
+}
