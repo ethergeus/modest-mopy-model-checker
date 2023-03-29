@@ -164,41 +164,28 @@ class ModelChecker():
         return R
     
     def value_iteration(self, n: int, expression: int) -> float:
-        states_new = {state: 1 if self.network.get_expression_value(state, expression) else 0 for state in self.states}
-        print('Initializing value iteration with initial array:')
-        for state, prob in states_new.items():
-            print(f'{state}: {prob}')
-        print()
+        _R = {s: int(self.network.get_expression_value(s, expression)) for s in self.states}
         
         for i in range(n):
-            states_old = states_new
-            states_new = {}
+            R = _R.copy()
+            _R = {}
             op = self.properties[expression].exp.op
-            for state in states_old:
-                probabilities = []
-                for transition in self.network.get_transitions(state):
-                    prob = 0
-                    for branch in self.network.get_branches(state, transition):
-                        prob += branch.probability * states_old[network.jump(state, transition, branch)]
-                    probabilities.append(prob)
-                if op == 'p_min':
-                    val = min(probabilities)
-                elif op == 'p_max':
-                    val = max(probabilities)
-                else:
-                    raise KeyError
-                states_new[state] = val
+            for s in R:
+                P = []
+                for a in self.network.get_transitions(s):
+                    P.append(sum([delta.probability * R[network.jump(s, a, delta)] for delta in self.network.get_branches(s, a)]))
+                if op.startswith('p_'):
+                    _R[s] = min(P) if op.endswith('_min') else max(P)
+                elif op.startswith('e_'):
+                    pass
             
             if debug:
                 print(f'VI step {i}:')
-                for state, prob in states_new.items():
-                    print(f'{state}: {prob}')
+                for s, P in _R.items():
+                    print(f'{s}: {P}')
                 print()
         
-        probability = states_new[network.get_initial_state()]
-        print(f'{self.properties[expression]} = {probability}')
-        print()
-        return probability
+        return _R[network.get_initial_state()]
 
 
 if __name__ == "__main__":
@@ -216,23 +203,26 @@ if __name__ == "__main__":
     start_time = timer()
 
     model_checker = ModelChecker(network)
-    print(model_checker.value_iteration(1000, 0))
-    print('Smin0:')
+
+    print(f'{network.properties[0]} = {model_checker.value_iteration(1000, 0)}')
+    print()
+    
+    print(f'{network.properties[0]} Smin0:')
     for model in model_checker.precompute_Smin0(0):
         print(model)
     print()
 
-    print('Smin1:')
+    print(f'{network.properties[0]} Smin1:')
     for model in model_checker.precompute_Smin1(0):
         print(model)
     print()
 
-    print('Smax0:')
+    print(f'{network.properties[0]} Smax0:')
     for model in model_checker.precompute_Smax0(0):
         print(model)
     print()
 
-    print('Smax1:')
+    print(f'{network.properties[0]} Smax1:')
     for model in model_checker.precompute_Smax1(0):
         print(model)
     print()
