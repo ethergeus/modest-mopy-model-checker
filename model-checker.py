@@ -37,16 +37,10 @@ class ModelChecker():
     def precompute_Smin0(self, expression: int) -> List[State]:
         S = self.states
         R = [state for state in S if self.network.get_expression_value(state, expression)]
-
-        print('Initializing Smin0 with initial array:')
-        for state in R:
-            print(state)
-        print()
-
         _R = [] # R' from the paper
 
         while set(R) != set(_R):
-            _R = R
+            _R = R.copy()
             for s in S:
                 # for each state s in S
                 forall_a = True
@@ -65,15 +59,8 @@ class ModelChecker():
                         forall_a = False
                         break
 
-                if forall_a:
+                if forall_a and s not in R:
                     R.append(s)
-                    break
-        
-        print('Smin0 = Pr_min(reach(T)) = 0:')
-        for state in S:
-            if state not in R:
-                print(state)
-        print()
         
         return [state for state in S if state not in R] # S \ R
     
@@ -81,8 +68,9 @@ class ModelChecker():
         S = self.states
         R = [state for state in S if state not in self.precompute_Smin0(expression)]
         _R = [] # R' from the paper
+
         while set(R) != set(_R):
-            _R = R
+            _R = R.copy()
             for s in R:
                 # for each state s in S
                 exists_a = False
@@ -93,6 +81,36 @@ class ModelChecker():
                         # for every target state s' in R'
                         _s = self.network.jump(s, a, delta)
                         if _s not in _R and delta.probability > 0:
+                            # there exists s' not in R' such that a -> s' with probability > 0
+                            exists_delta = True
+                            break
+                    
+                    if exists_delta:
+                        exists_a = True
+                        break
+                
+                if exists_a and s in R:
+                    R.remove(s)
+
+        return R
+    
+    def precompute_Smax0(self, expression: int) -> List[State]:
+        S = self.states
+        R = [state for state in S if self.network.get_expression_value(state, expression)]
+        _R = [] # R' from the paper
+        
+        while set(R) != set(_R):
+            _R = R.copy()
+            for s in S:
+                # for each state s in S
+                exists_a = False
+                for a in self.network.get_transitions(s):
+                    # for each action a in A(s)
+                    exists_delta = False
+                    for delta in self.network.get_branches(s, a):
+                        # for every target state s' in R'
+                        _s = self.network.jump(s, a, delta)
+                        if _s in _R and delta.probability > 0:
                             # there exists s' in R' such that a -> s' with probability > 0
                             exists_delta = True
                             break
@@ -101,15 +119,48 @@ class ModelChecker():
                         exists_a = True
                         break
                 
-                if exists_a:
-                    R.remove(s)
-                    break
+                if exists_a and s not in R:
+                    R.append(s)
         
-        print('Smin1 = Pr_min(reach(T)) = 1:')
-        for state in R:
-            print(state)
-        print()
+        return [state for state in S if state not in R] # S \ R
+    
+    def precompute_Smax1(self, expression: int) -> List[State]:
+        S = self.states
+        T = [state for state in S if self.network.get_expression_value(state, expression)]
+        R = S.copy()
+        _R = [] # R' from the paper
+        __R = [] # R'' from the paper
 
+        while set(R) != set(_R):
+            _R = R.copy()
+            R = T.copy()
+            while set(R) != set(__R):
+                __R = R.copy()
+                for s in S:
+                    # for each state s in S
+                    exists_a = False
+                    for a in self.network.get_transitions(s):
+                        # for each action a in A(s)
+                        forall_s = True
+                        exists_s = False
+
+                        for delta in self.network.get_branches(s, a):
+                            # for every target state s' in R'
+                            _s = self.network.jump(s, a, delta)
+                            if _s not in _R or delta.probability == 0:
+                                # there does not exist s' in R' such that a -> s' with probability > 0
+                                forall_s = False # reject transition
+                                break
+                            if _s in __R and delta.probability > 0:
+                                # there exists s' in R'' such that a -> s' with probability > 0
+                                exists_s = True
+
+                        if forall_s and exists_s:
+                            exists_a = True
+                            break
+                    
+                    if exists_a and s not in R:
+                        R.append(s)
         return R
     
     def value_iteration(self, n: int, expression: int) -> float:
@@ -165,9 +216,26 @@ if __name__ == "__main__":
     start_time = timer()
 
     model_checker = ModelChecker(network)
-    #print(model_checker.value_iteration(1000, 0))
-    model_checker.precompute_Smin0(0)
-    model_checker.precompute_Smin1(0)
+    print(model_checker.value_iteration(1000, 0))
+    print('Smin0:')
+    for model in model_checker.precompute_Smin0(0):
+        print(model)
+    print()
+
+    print('Smin1:')
+    for model in model_checker.precompute_Smin1(0):
+        print(model)
+    print()
+
+    print('Smax0:')
+    for model in model_checker.precompute_Smax0(0):
+        print(model)
+    print()
+
+    print('Smax1:')
+    for model in model_checker.precompute_Smax1(0):
+        print(model)
+    print()
 
     end_time = timer()
     print("Done in {0:.2f} seconds.".format(end_time - start_time))
