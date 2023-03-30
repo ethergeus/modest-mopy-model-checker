@@ -1,0 +1,54 @@
+action risk, safe, nope;
+
+bool unrc, sad;
+
+property P_UNRC = Pmax(true U unrc);
+property P_Sad = Pmax(<> sad);
+
+transient int cost = 0;
+property R_MinCostToUNRC = Xmin(S(cost), unrc);
+property R_MaxCostToUNRC = Xmax(S(cost), unrc);
+
+process Cor()
+{
+	alt {
+	:: risk; Taxi()
+	:: safe {= cost = 2 =}; Bus()
+	}
+}
+
+process Bus()
+{
+	tau palt {
+	:0.1: {= unrc = true =}; Done()
+	:0.9: Cor()
+	}
+}
+
+process Taxi()
+{
+	alt {
+	:: nope {= cost = 1 =}; Cor()
+	:: tau palt {
+		:0.5: {= unrc = true, cost = 8 =}; Done()
+		:0.5: {= sad = true =}; Done()
+	   }
+	}
+}
+
+process Done() { tau; Done() }
+
+Cor()
+
+/*
+Alternative way of modelling:
+do {
+:: when(state == TAXI) alt {
+   :: nope {= state = COR =}
+	:: tau palt {
+		:0.5: ...
+		:0.5: ...
+	   }
+   }
+}
+*/

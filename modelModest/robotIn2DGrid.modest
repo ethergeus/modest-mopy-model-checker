@@ -1,0 +1,61 @@
+// Description: mdp-model describe in exercise 8.2 of the Lecture Note.
+action x, y, d;
+
+int(0..8) state = 0;
+const int S_00 = 0, S_01 = 1, S_02 = 2;
+const int S_10 = 3, S_11 = 4, S_12 = 5; 
+const int S_20 = 6, S_21 = 7, S_22 = 8;
+
+property P1 = Pmin(<> (state == S_22));
+
+transient int(0..1) countTransitions = 0;
+property P2 = Pmax(<> [S(countTransitions) <= 3](state == S_22));
+
+process State_0_0()
+{
+    alt {
+    :: x {= state = S_00, countTransitions = 1 =}; State_1_0()
+    :: y {= state = S_01, countTransitions = 1=}; State_0_1()
+    :: d palt {
+       :0.1: {= state = S_21, countTransitions = 1 =}; State_2_1()
+       :0.9: {= state = S_00, countTransitions = 1 =}; State_0_0()
+       }
+    }
+}
+
+process State_0_1()
+{
+    alt {
+    :: x {= state = S_11, countTransitions = 1 =}; State_1_1()
+    :: y {= state = S_02, countTransitions = 1 =}; State_0_2()
+    :: d palt {
+       :0.1: {= state = S_22, countTransitions = 1 =}; State_2_2()
+       :0.9: {= state = S_01, countTransitions = 1 =}; State_0_1()
+       }
+    }
+}
+
+process State_0_2(){ x {= state = S_12, countTransitions = 1 =}; State_1_2() }
+
+process State_1_0()
+{
+    alt {
+    :: x {= state = S_20, countTransitions = 1 =}; State_2_0()
+    :: y {= state = S_11, countTransitions = 1 =}; State_1_1()
+    }
+}
+
+process State_1_1()
+{
+    alt {
+    :: x {= state = S_21, countTransitions = 1 =}; State_2_1()
+    :: y {= state = S_12, countTransitions = 1 =}; State_1_2()
+    }
+}
+
+process State_1_2(){ x {= state = S_22, countTransitions = 1 =}; State_2_2() }
+process State_2_0(){ y {= state = S_21, countTransitions = 1 =}; State_2_1() }
+process State_2_1(){ y {= state = S_22, countTransitions = 1 =}; State_2_2() }
+process State_2_2(){ tau {= state = S_22, countTransitions = 1 =}; State_2_2() }
+
+State_0_0()

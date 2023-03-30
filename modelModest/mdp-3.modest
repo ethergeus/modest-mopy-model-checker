@@ -1,0 +1,46 @@
+// Description: The same model structure as demo-mdp-2.modest from canvas, but written differently for state-space visualization.
+action r, s;
+
+bool successful= false;
+bool failure = false;
+
+property P1 = Pmax(<> (successful == true));
+property P2 = Pmax(<> (failure == true));
+property P3 = Pmin(<> (successful == true));
+property P4 = Pmin(<> (failure == true));
+
+transient int(0..8) reward = 0;
+property R1 = Xmax(S(reward), successful == true || failure == true);
+property R2 = Xmin(S(reward), successful == true);
+
+process Choose()
+{
+	alt {
+	:: s; Safe()
+	:: r; Risk()
+	}
+}
+
+process Safe()
+{
+	tau palt {
+	:0.1: {= successful = true, reward = 2 =}; Success()
+	:0.9: Choose()
+	}
+}
+
+process Risk()
+{
+	alt {
+		::s; Choose()
+		::r palt {
+		:0.5: {= successful = true, reward = 8 =}; Success()
+		:0.5: {= failure = true =}; Fail()
+		}
+	}
+}
+
+process Fail() { tau; Fail() }
+process Success() { tau; Success() }
+
+Choose()
