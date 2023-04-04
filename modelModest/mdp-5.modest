@@ -1,0 +1,44 @@
+// Description: Exercise 8.3 from Lecture Note.
+action r, s;
+
+bool successful= false;
+bool failure = false;
+
+property P1 = Pmax(<> (successful == true));
+property P2 = Pmin(<> (successful == true));
+
+transient int(0..8) reward = 0;
+property R1 = Xmax(S(reward), successful == true);
+property R2 = Xmin(S(reward), successful == true);
+
+process Choose()
+{
+	alt {
+	:: s {= reward = 1 =}; Safe()
+	:: r {= reward = 8 =}; Risk()
+	}
+}
+
+process Safe()
+{
+	tau palt {
+	:0.1: {= successful = true =}; Success()
+	:0.9: Choose()
+	}
+}
+
+process Risk()
+{
+	alt {
+		::s; Choose()
+		::r palt {
+		:0.5: {= successful = true =}; Success()
+		:0.5: {= failure = true =}; Fail()
+		}
+	}
+}
+
+process Fail() { tau; Fail() }
+process Success() { tau; Success() }
+
+Choose()
