@@ -6,23 +6,26 @@ from mdp import *
 
 
 debug = False
-
+debug_value_iteration = False
+debug_precomputation = False
 
 class ModelChecker():
     def __init__(self, network: Network) -> None:
         self.network = network
 
         self.states = self.explore(network.get_initial_state(), [])
-        print('Explored the following states:')
-        for state in self.states:
-            print(state)
-        print()
-
         self.properties = network.properties
-        print('Model checks for the following properties:')
-        for i in range(len(self.properties)):
-            print(f'{i}: {self.properties[i]}')
-        print()
+
+        if debug:
+            print('Explored the following states:')
+            for state in self.states:
+                print(state)
+            print()
+            
+            print('Model checks for the following properties:')
+            for i in range(len(self.properties)):
+                print(f'{i}: {self.properties[i]}')
+            print()
     
     def explore(self, s: State, explored: List[State]) -> List[State]:
         if s not in explored:
@@ -207,7 +210,7 @@ class ModelChecker():
                         paths = [sum([reward_exps[0] * delta.probability * v[network.jump(s, a, delta, reward_exps)] for delta in self.network.get_branches(s, a)]) for a in self.network.get_transitions(s)]
                         _v[s] = min(paths) if op.endswith('_min') else max(paths)
             
-            if debug:
+            if debug_value_iteration:
                 print(f'VI step {i}:')
                 for s, P in _v.items():
                     print(f'{s}: {P}')
@@ -232,34 +235,29 @@ if __name__ == "__main__":
 
     model_checker = ModelChecker(network)
 
-    print(f'{network.properties[0]} Smin0:')
-    for model in model_checker.precompute_Smin0(0):
-        print(model)
-    print()
+    if debug_precomputation:
+        print(f'{network.properties[0]} Smin0:')
+        for model in model_checker.precompute_Smin0(0):
+            print(model)
+        print()
 
-    print(f'{network.properties[0]} Smin1:')
-    for model in model_checker.precompute_Smin1(0):
-        print(model)
-    print()
+        print(f'{network.properties[0]} Smin1:')
+        for model in model_checker.precompute_Smin1(0):
+            print(model)
+        print()
 
-    print(f'{network.properties[0]} Smax0:')
-    for model in model_checker.precompute_Smax0(0):
-        print(model)
-    print()
+        print(f'{network.properties[0]} Smax0:')
+        for model in model_checker.precompute_Smax0(0):
+            print(model)
+        print()
 
-    print(f'{network.properties[0]} Smax1:')
-    for model in model_checker.precompute_Smax1(0):
-        print(model)
-    print()
-
-    print(f'{network.properties[0]} = {model_checker.value_iteration(1000, 0)}')
-    print()
-
-    print(f'{network.properties[1]} = {model_checker.value_iteration(1000, 1)}')
-    print()
-
-    print(f'{network.properties[2]} = {model_checker.value_iteration(3, 2)}')
-    print()
+        print(f'{network.properties[0]} Smax1:')
+        for model in model_checker.precompute_Smax1(0):
+            print(model)
+        print()
+    
+    for property in network.properties:
+        print(f'{property} = {model_checker.value_iteration(1000, network.properties.index(property))}')
 
     end_time = timer()
     print("Done in {0:.2f} seconds.".format(end_time - start_time))
