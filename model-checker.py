@@ -7,13 +7,15 @@ from mdp import *
 
 debug = False
 debug_value_iteration = False
+debug_value_iteration_initialization = False
 debug_precomputation = False
+
 
 class ModelChecker():
     def __init__(self, network: Network) -> None:
         self.network = network
 
-        self.states = self.explore(network.get_initial_state(), [])
+        self.states = self.explore(network.get_initial_state())
         self.properties = network.properties
 
         if debug:
@@ -21,13 +23,13 @@ class ModelChecker():
             for state in self.states:
                 print(state)
             print()
-            
+
             print('Model checks for the following properties:')
             for i in range(len(self.properties)):
                 print(f'{i}: {self.properties[i]}')
             print()
     
-    def explore(self, s: State, explored: List[State]) -> List[State]:
+    def explore(self, s: State, explored: List[State] = []) -> List[State]:
         if s not in explored:
             explored.append(s)
             for a in self.network.get_transitions(s):
@@ -62,9 +64,17 @@ class ModelChecker():
                         break
 
                 if forall_a and s not in R:
-                    R.append(s)
+                    R += [_s for _s in S if _s.state == s.state]
+                    # R.append(s)
         
-        return [state for state in S if state not in R] # S \ R
+        if debug_precomputation:
+            print(f'{network.properties[expression]} Smin0:')
+            for s in S:
+                if s not in R:
+                    print(s)
+            print()
+        
+        return [s for s in S if s not in R] # S \ R
     
     def precompute_Smin1(self, expression: int) -> List[State]:
         S = self.states
@@ -92,7 +102,14 @@ class ModelChecker():
                         break
                 
                 if exists_a and s in R:
-                    R.remove(s)
+                    R = list(filter(lambda _s: _s.state != s.state, R))
+                    # R.remove(s)
+        
+        if debug_precomputation:
+            print(f'{network.properties[expression]} Smin1:')
+            for s in R:
+                print(s)
+            print()
 
         return R
     
@@ -122,9 +139,17 @@ class ModelChecker():
                         break
                 
                 if exists_a and s not in R:
-                    R.append(s)
+                    R += [_s for _s in S if _s.state == s.state]
+                    # R.append(s)
         
-        return [state for state in S if state not in R] # S \ R
+        if debug_precomputation:
+            print(f'{network.properties[expression]} Smax0:')
+            for s in S:
+                if s not in R:
+                    print(s)
+            print()
+        
+        return [s for s in S if s not in R] # S \ R
     
     def precompute_Smax1(self, expression: int) -> List[State]:
         S = self.states
@@ -162,37 +187,59 @@ class ModelChecker():
                             break
                     
                     if exists_a and s not in R:
-                        R.append(s)
+                        R += [_s for _s in S if _s.state == s.state]
+                        # R.append(s)
+        
+        if debug_precomputation:
+            print(f'{network.properties[expression]} Smax1:')
+            for s in R:
+                print(s)
+            print()
+
         return R
     
     def value_iteration(self, n: int, expression: int) -> float:
         S = self.states
         exp = self.properties[expression].exp
         op = exp.op
-        is_prob = op.startswith('p_')
-        is_reach = exp is not None and op == 'exists' and (exp.args[0].op == 'eventually' and exp.args[0].args[0].op == 'ap' or exp.args[0].op == 'until' and exp.args[0].args[0].op == 'ap' and exp.args[0].args[1].op == 'ap')
+        args = exp.args
+        is_prob = exp is not None and op.startswith('p_')
+        is_reach = exp is not None and op == 'exists' and (args[0].op == 'eventually' and args[0].args[0].op == 'ap' or args[0].op == 'until' and args[0].args[0].op == 'ap' and args[0].args[1].op == 'ap')
         safe_exp = None
         goal_exp = None
+        reward_exp = None
         
-        if is_reach:
-            safe_exp = exp.args[0].args[0].args[0] if exp.args[0].op == 'until' else None
-            goal_exp = exp.args[0].args[1].args[0] if exp.args[0].op == 'until' else exp.args[0].args[0].args[0]
+        if is_reach or is_prob:
+            safe_exp = args[0].args[0].args[0] if args[0].op == 'until' else None
+            goal_exp = args[0].args[1].args[0] if args[0].op == 'until' else args[0].args[0].args[0]
 
-        is_reward = exp is not None and op.startswith('e_') and exp.args[1].op == 'ap'
+        is_reward = exp is not None and op.startswith('e_') and args[1].op == 'ap'
 
         if is_reward:
-            reward_exps = [exp.args[0]]
+            goal_exp = args[1].args[0]
+            reward_exp = exp.args[0]
         
-        S1 = self.precompute_Smin1(expression) if op.endswith('_max') else self.precompute_Smax1(expression)
-        G = [s for s in S if self.network.get_expression_value(s, expression)]
+        S1 = self.precompute_Smin1(goal_exp) if op.endswith('_max') else self.precompute_Smax1(goal_exp)
+        G = [s for s in S if self.network.get_expression_value(s, goal_exp)]
         if is_prob:
             # Probability value iteration initialization
-            _v = {s: int(self.network.get_expression_value(s, expression)) for s in S}
+            _v = {s: int(self.network.get_expression_value(s, goal_exp)) for s in S}
         elif is_reward:
             # Expected reward value iteration initialization
             _v = {s: 0 if s in G + S1 else float('inf') for s in S}
         else:
             raise ValueError('Unknown operator: {}'.format(op))
+        
+        if debug_value_iteration_initialization:
+            print('S1:')
+            for s in S1:
+                print(s)
+            print()
+
+            print('G:')
+            for s in G:
+                print(s)
+            print()
         
         for i in range(n):
             v = _v.copy() # v_i-1
@@ -207,7 +254,7 @@ class ModelChecker():
                     elif s not in S1:
                         _v[s] = float('inf') # reward is infinite
                     else:
-                        paths = [sum([reward_exps[0] * delta.probability * v[network.jump(s, a, delta, reward_exps)] for delta in self.network.get_branches(s, a)]) for a in self.network.get_transitions(s)]
+                        paths = [sum([reward_exp * delta.probability * v[network.jump(s, a, delta, [reward_exp])] for delta in self.network.get_branches(s, a)]) for a in self.network.get_transitions(s)]
                         _v[s] = min(paths) if op.endswith('_min') else max(paths)
             
             if debug_value_iteration:
