@@ -64,8 +64,8 @@ class ModelChecker():
                         break
 
                 if forall_a and s not in R:
-                    R += [_s for _s in S if _s.state == s.state]
-                    # R.append(s)
+                    # R += [_s for _s in S if _s.state == s.state]
+                    R.append(s)
         
         if debug_precomputation:
             print(f'{network.properties[expression]} Smin0:')
@@ -102,8 +102,8 @@ class ModelChecker():
                         break
                 
                 if exists_a and s in R:
-                    R = list(filter(lambda _s: _s.state != s.state, R))
-                    # R.remove(s)
+                    # R = list(filter(lambda _s: _s.state != s.state, R))
+                    R.remove(s)
         
         if debug_precomputation:
             print(f'{network.properties[expression]} Smin1:')
@@ -139,8 +139,8 @@ class ModelChecker():
                         break
                 
                 if exists_a and s not in R:
-                    R += [_s for _s in S if _s.state == s.state]
-                    # R.append(s)
+                    # R += [_s for _s in S if _s.state == s.state]
+                    R.append(s)
         
         if debug_precomputation:
             print(f'{network.properties[expression]} Smax0:')
@@ -187,8 +187,8 @@ class ModelChecker():
                             break
                     
                     if exists_a and s not in R:
-                        R += [_s for _s in S if _s.state == s.state]
-                        # R.append(s)
+                        # R += [_s for _s in S if _s.state == s.state]
+                        R.append(s)
         
         if debug_precomputation:
             print(f'{network.properties[expression]} Smax1:')
