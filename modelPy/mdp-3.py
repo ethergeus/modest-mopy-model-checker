@@ -1,4 +1,4 @@
-# mdp-3
+# mdp-5
 
 from __future__ import annotations
 from typing import List, Union, Optional
@@ -22,38 +22,33 @@ class VariableInfo(object):
 
 # States
 class State(object):
-	__slots__ = ("successful", "failure", "Choose_location")
+	__slots__ = ("state", "Choose_location")
 	
 	def get_variable_value(self, variable: int):
 		if variable == 0:
-			return self.successful
+			return self.state
 		elif variable == 1:
-			return self.failure
-		elif variable == 2:
 			return self.Choose_location
 	
 	def copy_to(self, other: State):
-		other.successful = self.successful
-		other.failure = self.failure
+		other.state = self.state
 		other.Choose_location = self.Choose_location
 	
 	def __eq__(self, other):
-		return isinstance(other, self.__class__) and self.successful == other.successful and self.failure == other.failure and self.Choose_location == other.Choose_location
+		return isinstance(other, self.__class__) and self.state == other.state and self.Choose_location == other.Choose_location
 	
 	def __ne__(self, other):
 		return not self.__eq__(other)
 	
 	def __hash__(self):
 		result = 75619
-		result = (((101 * result) & 0xFFFFFFFF) + hash(self.successful)) & 0xFFFFFFFF
-		result = (((101 * result) & 0xFFFFFFFF) + hash(self.failure)) & 0xFFFFFFFF
+		result = (((101 * result) & 0xFFFFFFFF) + hash(self.state)) & 0xFFFFFFFF
 		result = (((101 * result) & 0xFFFFFFFF) + hash(self.Choose_location)) & 0xFFFFFFFF
 		return result
 	
 	def __str__(self):
 		result = "("
-		result += "successful = " + str(self.successful)
-		result += ", failure = " + str(self.failure)
+		result += "state = " + str(self.state)
 		result += ", Choose_location = " + str(self.Choose_location)
 		result += ")"
 		return result
@@ -177,37 +172,43 @@ class ChooseAutomaton(object):
 			if location == 0:
 				if transition == 0:
 					if branch == 0:
+						target_state.state = 1
 						target_state.Choose_location = 4
 				elif transition == 1:
 					if branch == 0:
+						target_state.state = 2
 						target_state.Choose_location = 1
 			elif location == 1:
 				if transition == 0:
 					if branch == 0:
+						target_state.state = 0
 						target_state.Choose_location = 0
 				elif transition == 1:
 					if branch == 0:
-						target_state.successful = True
+						target_state.state = 3
 						target_transient.reward = 8
 						target_state.Choose_location = 3
 					elif branch == 1:
-						target_state.failure = True
+						target_state.state = 4
 						target_state.Choose_location = 2
 			elif location == 2:
 				if transition == 0:
 					if branch == 0:
+						target_state.state = 4
 						target_state.Choose_location = 2
 			elif location == 3:
 				if transition == 0:
 					if branch == 0:
+						target_state.state = 3
 						target_state.Choose_location = 3
 			elif location == 4:
 				if transition == 0:
 					if branch == 0:
-						target_state.successful = True
+						target_state.state = 3
 						target_transient.reward = 2
 						target_state.Choose_location = 3
 					elif branch == 1:
+						target_state.state = 0
 						target_state.Choose_location = 0
 
 class PropertyExpression(object):
@@ -264,14 +265,11 @@ class Network(object):
 		self.properties = [
 			Property("P1", PropertyExpression("p_max", [PropertyExpression("eventually", [PropertyExpression("ap", [0])])])),
 			Property("P2", PropertyExpression("p_max", [PropertyExpression("eventually", [PropertyExpression("ap", [1])])])),
-			Property("P3", PropertyExpression("p_min", [PropertyExpression("eventually", [PropertyExpression("ap", [0])])])),
-			Property("P4", PropertyExpression("p_min", [PropertyExpression("eventually", [PropertyExpression("ap", [1])])])),
 			Property("R1", PropertyExpression("e_max_s", [2, PropertyExpression("ap", [3])])),
 			Property("R2", PropertyExpression("e_min_s", [2, PropertyExpression("ap", [0])]))
 		]
 		self.variables = [
-			VariableInfo("successful", None, "bool"),
-			VariableInfo("failure", None, "bool"),
+			VariableInfo("state", None, "int", 0, 4),
 			VariableInfo("Choose_location", 0, "int", 0, 4)
 		]
 		self._aut_Choose = ChooseAutomaton(self)
@@ -280,8 +278,7 @@ class Network(object):
 	
 	def get_initial_state(self) -> State:
 		state = State()
-		state.successful = False
-		state.failure = False
+		state.state = 0
 		self._aut_Choose.set_initial_values(state)
 		return state
 	
@@ -293,25 +290,25 @@ class Network(object):
 	
 	def get_expression_value(self, state: State, expression: int):
 		if expression == 0:
-			return state.successful
+			return (state.state == 3)
 		elif expression == 1:
-			return state.failure
+			return (state.state == 4)
 		elif expression == 2:
 			return self.network._get_transient_value(state, "reward")
 		elif expression == 3:
-			return (state.successful or state.failure)
+			return ((state.state == 3) or (state.state == 4))
 		else:
 			raise IndexError
 	
 	def _get_jump_expression_value(self, state: State, transient: Transient, expression: int):
 		if expression == 0:
-			return state.successful
+			return (state.state == 3)
 		elif expression == 1:
-			return state.failure
+			return (state.state == 4)
 		elif expression == 2:
 			return transient.reward
 		elif expression == 3:
-			return (state.successful or state.failure)
+			return ((state.state == 3) or (state.state == 4))
 		else:
 			raise IndexError
 	

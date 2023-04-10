@@ -1,46 +1,46 @@
 // Description: The same model structure as demo-mdp-2.modest from canvas, but written differently for state-space visualization.
 action r, s;
 
-bool successful= false;
-bool failure = false;
+int(0..4) state = 0;
+const int CHOOSE = 0, SAFE = 1, RISK = 2, SUCCESS = 3, FAIL = 4;
 
-property P1 = Pmax(<> (successful == true));
-property P2 = Pmax(<> (failure == true));
-property P3 = Pmin(<> (successful == true));
-property P4 = Pmin(<> (failure == true));
+property P1 = Pmax(<> (state == SUCCESS));
+property P2 = Pmax(<> (state == FAIL));
+//property P3 = Pmin(<> (state == SUCCESS));
+//property P4 = Pmin(<> (state == FAIL));
 
 transient int(0..8) reward = 0;
-property R1 = Xmax(S(reward), successful == true || failure == true);
-property R2 = Xmin(S(reward), successful == true);
+property R1 = Xmax(S(reward), state == SUCCESS || state == FAIL);
+property R2 = Xmin(S(reward), state == SUCCESS);
 
 process Choose()
 {
 	alt {
-	:: s; Safe()
-	:: r; Risk()
+	:: s {= state = SAFE =}; Safe()
+	:: r {= state = RISK =}; Risk()
 	}
 }
 
 process Safe()
 {
 	tau palt {
-	:0.1: {= successful = true, reward = 2 =}; Success()
-	:0.9: Choose()
+	:0.1: {= state = SUCCESS, reward = 2 =}; Success()
+	:0.9: {= state = CHOOSE =}; Choose()
 	}
 }
 
 process Risk()
 {
 	alt {
-		::s; Choose()
+		::s {= state = CHOOSE =}; Choose()
 		::r palt {
-		:0.5: {= successful = true, reward = 8 =}; Success()
-		:0.5: {= failure = true =}; Fail()
+		:0.5: {= state = SUCCESS, reward = 8 =}; Success()
+		:0.5: {= state = FAIL =}; Fail()
 		}
 	}
 }
 
-process Fail() { tau; Fail() }
-process Success() { tau; Success() }
+process Fail() { tau {= state = FAIL =}; Fail() }
+process Success() { tau {= state = SUCCESS =}; Success() }
 
 Choose()
