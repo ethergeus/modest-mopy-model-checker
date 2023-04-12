@@ -7,7 +7,7 @@ from mdp import *
 
 debug = False
 debug_value_iteration = True
-debug_value_iteration_initialization = False
+debug_value_iteration_initialization = True
 debug_precomputation = False
 
 
@@ -36,7 +36,7 @@ class ModelChecker():
                 for delta in self.network.get_branches(s, a):
                     explored = self.explore(self.network.jump(s, a, delta), explored)
         
-        return explored
+        return sorted(explored, key=lambda s: s.state)
 
     def precompute_Smin0(self, expression: int) -> List[State]:
         S = self.states
@@ -239,6 +239,11 @@ class ModelChecker():
             print('G:')
             for s in G:
                 print(s)
+            print()
+
+            print('v:')
+            for s in _v:
+                print(s, _v[s])
             print()
         
         for i in range(n):
