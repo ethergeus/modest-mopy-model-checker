@@ -6,8 +6,8 @@ from mdp import *
 
 
 debug = False
-debug_value_iteration = True
-debug_value_iteration_initialization = True
+debug_value_iteration = False
+debug_value_iteration_initialization = False
 debug_precomputation = False
 
 
@@ -36,7 +36,7 @@ class ModelChecker():
                 for delta in self.network.get_branches(s, a):
                     explored = self.explore(self.network.jump(s, a, delta), explored)
         
-        return sorted(explored, key=lambda s: s.state)
+        return sorted(explored, key=lambda s: s.__str__())
 
     def precompute_Smin0(self, expression: int) -> List[State]:
         S = self.states
@@ -68,13 +68,13 @@ class ModelChecker():
                     R.append(s)
         
         if debug_precomputation:
-            print(f'{network.properties[expression]} Smin0:')
+            print(f'{self.network.properties[expression]} Smin0:')
             for s in S:
                 if s not in R:
                     print(s)
             print()
         
-        return sorted([s for s in S if s not in R], key=lambda s: s.state) # S \ R
+        return sorted([s for s in S if s not in R], key=lambda s: s.__str__()) # S \ R
     
     def precompute_Smin1(self, expression: int) -> List[State]:
         S = self.states
@@ -106,12 +106,12 @@ class ModelChecker():
                     R.remove(s)
         
         if debug_precomputation:
-            print(f'{network.properties[expression]} Smin1:')
+            print(f'{self.network.properties[expression]} Smin1:')
             for s in R:
                 print(s)
             print()
 
-        return sorted(R, key=lambda s: s.state)
+        return sorted(R, key=lambda s: s.__str__())
     
     def precompute_Smax0(self, expression: int) -> List[State]:
         S = self.states
@@ -143,13 +143,13 @@ class ModelChecker():
                     R.append(s)
         
         if debug_precomputation:
-            print(f'{network.properties[expression]} Smax0:')
+            print(f'{self.network.properties[expression]} Smax0:')
             for s in S:
                 if s not in R:
                     print(s)
             print()
         
-        return sorted([s for s in S if s not in R], key=lambda s: s.state) # S \ R
+        return sorted([s for s in S if s not in R], key=lambda s: s.__str__()) # S \ R
     
     def precompute_Smax1(self, expression: int) -> List[State]:
         S = self.states
@@ -191,10 +191,12 @@ class ModelChecker():
                         R.append(s)
         
         if debug_precomputation:
-            print(f'{network.properties[expression]} Smax1:')
+            print(f'{self.network.properties[expression]} Smax1:')
             for s in R:
                 print(s)
             print()
+        
+        return sorted(R, key=lambda s: s.__str__())
 
     
     def value_iteration(self, n: int, expression: int) -> float:
@@ -225,7 +227,9 @@ class ModelChecker():
             _v = {s: int(self.network.get_expression_value(s, goal_exp)) for s in S}
         elif is_reward:
             # Expected reward value iteration initialization
-            _v = {s: 0 if s in G + S1 else float('inf') for s in S}
+            _v = {s: 0 if s in S1 else float('inf') for s in S}
+            for s in G:
+                assert s in S1
         else:
             raise ValueError('Unknown operator: {}'.format(op))
         
@@ -250,7 +254,7 @@ class ModelChecker():
             _v = {} # v_i
             for s in v:
                 if is_prob:
-                    paths = [sum([delta.probability * v[network.jump(s, a, delta)] for delta in self.network.get_branches(s, a)]) for a in self.network.get_transitions(s)]
+                    paths = [sum([delta.probability * v[self.network.jump(s, a, delta)] for delta in self.network.get_branches(s, a)]) for a in self.network.get_transitions(s)]
                     _v[s] = min(paths) if op.endswith('_min') else max(paths)
                 elif is_reward:
                     if s in G:
@@ -258,8 +262,14 @@ class ModelChecker():
                     elif s not in S1:
                         _v[s] = float('inf') # reward is infinite
                     else:
-                        paths = [sum([reward_exp * delta.probability * v[network.jump(s, a, delta, [reward_exp])] for delta in self.network.get_branches(s, a)]) for a in self.network.get_transitions(s)]
-                        _v[s] = min(paths) if op.endswith('_min') else max(paths)
+                        paths = []
+                        for a in self.network.get_transitions(s):
+                            r = 0
+                            for delta in self.network.get_branches(s, a):
+                                reward = [reward_exp]
+                                r += delta.probability * (v[self.network.jump(s, a, delta, reward)] + reward[0])
+                            paths.append(r)
+                        _v[s] = min(paths) if op.endswith('_min_s') else max(paths)
             
             if debug_value_iteration:
                 print(f'VI step {i}:')
@@ -308,7 +318,7 @@ if __name__ == "__main__":
         print()
     
     for property in network.properties:
-        print(f'{property} = {model_checker.value_iteration(6, network.properties.index(property))}')
+        print(f'{property} = {model_checker.value_iteration(10000, network.properties.index(property))}')
 
     end_time = timer()
     print("Done in {0:.2f} seconds.".format(end_time - start_time))
