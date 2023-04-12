@@ -210,7 +210,7 @@ class State_0_0Automaton(object):
 			if location == 0:
 				if transition == 0:
 					if branch == 0:
-						target_state.state = 0
+						target_state.state = 3
 						target_transient.countTransitions = 1
 						target_state.State_0_0_location = 7
 				elif transition == 1:

@@ -6,7 +6,7 @@ from mdp import *
 
 
 debug = False
-debug_value_iteration = False
+debug_value_iteration = True
 debug_value_iteration_initialization = False
 debug_precomputation = False
 
@@ -304,7 +304,7 @@ if __name__ == "__main__":
         print()
     
     for property in network.properties:
-        print(f'{property} = {model_checker.value_iteration(1000, network.properties.index(property))}')
+        print(f'{property} = {model_checker.value_iteration(6, network.properties.index(property))}')
 
     end_time = timer()
     print("Done in {0:.2f} seconds.".format(end_time - start_time))

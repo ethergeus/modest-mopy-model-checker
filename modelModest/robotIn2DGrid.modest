@@ -1,4 +1,4 @@
-// Description: mdp-model describe in exercise 8.2 of the Lecture Note.
+// Description: Robot in 2D-grid of 3x3 cells from exercise 8.3 in the Lecture Note.
 action x, y, d;
 
 int(0..8) state = 0;
@@ -9,12 +9,12 @@ const int S_20 = 6, S_21 = 7, S_22 = 8;
 property P1 = Pmin(<> (state == S_22));
 
 transient int(0..1) countTransitions = 0;
-property P2 = Pmax(<> [S(countTransitions) <= 3](state == S_22));
+property P2 = Pmax(<> [S(countTransitions) <= 5](state == S_22));
 
 process State_0_0()
 {
     alt {
-    :: x {= state = S_00, countTransitions = 1 =}; State_1_0()
+    :: x {= state = S_10, countTransitions = 1 =}; State_1_0()
     :: y {= state = S_01, countTransitions = 1=}; State_0_1()
     :: d palt {
        :0.1: {= state = S_21, countTransitions = 1 =}; State_2_1()
