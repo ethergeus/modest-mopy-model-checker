@@ -199,7 +199,7 @@ class ModelChecker():
         return sorted(R, key=lambda s: s.__str__())
 
     
-    def value_iteration(self, n: int, expression: int) -> float:
+    def value_iteration(self, expression: int, k: int = 10000, e: float = None) -> float:
         S = self.states
         exp = self.properties[expression].exp
         op = exp.op
@@ -249,7 +249,10 @@ class ModelChecker():
                 print(s, _v[s])
             print()
         
-        for i in range(n):
+        if e is not None:
+            k = sys.maxsize
+        
+        for i in range(k):
             v = _v.copy() # v_i-1
             _v = {} # v_i
             for s in v:
@@ -276,6 +279,10 @@ class ModelChecker():
                 for s, P in _v.items():
                     print(f'{s}: {P}')
                 print()
+            
+            if e is not None:
+                if all(_v[s] == float('inf') or _v[s] == 0 or abs(_v[s] - v[s]) < e for s in v):
+                    break
         
         return _v[network.get_initial_state()]
 
@@ -318,7 +325,7 @@ if __name__ == "__main__":
         print()
     
     for property in network.properties:
-        print(f'{property} = {model_checker.value_iteration(10000, network.properties.index(property))}')
+        print(f'{property} = {model_checker.value_iteration(network.properties.index(property), e=.0001)}')
 
     end_time = timer()
     print("Done in {0:.2f} seconds.".format(end_time - start_time))
