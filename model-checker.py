@@ -74,7 +74,7 @@ class ModelChecker():
                     print(s)
             print()
         
-        return [s for s in S if s not in R] # S \ R
+        return sorted([s for s in S if s not in R], key=lambda s: s.state) # S \ R
     
     def precompute_Smin1(self, expression: int) -> List[State]:
         S = self.states
@@ -111,7 +111,7 @@ class ModelChecker():
                 print(s)
             print()
 
-        return R
+        return sorted(R, key=lambda s: s.state)
     
     def precompute_Smax0(self, expression: int) -> List[State]:
         S = self.states
@@ -149,7 +149,7 @@ class ModelChecker():
                     print(s)
             print()
         
-        return [s for s in S if s not in R] # S \ R
+        return sorted([s for s in S if s not in R], key=lambda s: s.state) # S \ R
     
     def precompute_Smax1(self, expression: int) -> List[State]:
         S = self.states
@@ -196,7 +196,6 @@ class ModelChecker():
                 print(s)
             print()
 
-        return R
     
     def value_iteration(self, n: int, expression: int) -> float:
         S = self.states
