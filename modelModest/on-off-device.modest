@@ -1,0 +1,81 @@
+// Description:
+// MDP-model of three devices with equal power consumption and has 
+// an Uniform probability on toggle. The goal of the properties is 
+// to check the minimum cost of either one, two or three devices 
+// had operated between the "number of operation" bound.
+
+action steady, switchON, switchOFF;
+
+const int maxOperations = 100;
+const int minOperations = 10;
+int numOfOperation = 0;
+
+const int S0 = 0, S1 = 1, S2 = 2, S3 = 3;
+int(0..3) state = 0;
+
+property P1 = Pmax(<> (numOfOperation >= maxOperations));
+property P2 = Pmax(<> (numOfOperation >= minOperations));
+
+
+transient int(0..1)[] cost = [0, 0, 0, 0];
+property R1 = Xmin(S(cost[S1]), numOfOperation >= maxOperations);
+property R2 = Xmin(S(cost[S2]), numOfOperation >= maxOperations);
+property R3 = Xmin(S(cost[S3]), numOfOperation >= maxOperations);
+
+property R4 = Xmin(S(cost[S1]), numOfOperation >= minOperations);
+property R5 = Xmin(S(cost[S2]), numOfOperation >= minOperations);
+property R6 = Xmin(S(cost[S3]), numOfOperation >= minOperations);
+
+process NoDeviceON()
+{
+  switchON palt {
+  :1: {= state = S0 =}; NoDeviceON()
+  :1: {= state = S1, numOfOperation += S1, cost[S1] = 1 =}; OneDeviceON()
+  :1: {= state = S2, numOfOperation += S2, cost[S2] = 1 =}; TwoDevicesON()
+  :1: {= state = S3, numOfOperation += S3, cost[S3] = 1 =}; ThreeDevicesON()
+  }
+}
+
+process OneDeviceON()
+{
+  alt {
+    :: switchOFF palt {
+       :1: {= state = S0 =}; NoDeviceON()
+       :1: {= state = S1 =}; OneDeviceON()
+      }
+    :: switchON palt {
+       :1: {= state = S1 =}; OneDeviceON()
+       :1: {= state = S2, numOfOperation += (S2 - S1), cost[S2] = 1 =}; TwoDevicesON()
+       :1: {= state = S3, numOfOperation += (S3 - S1), cost[S3] = 1 =}; ThreeDevicesON()
+       }
+  }
+}
+
+process TwoDevicesON()
+{
+  alt {
+    :: switchOFF palt {
+       :1: {= state = S0 =}; NoDeviceON()
+       :1: {= state = S1, cost[S1] = 1 =}; OneDeviceON()
+       :1: {= state = S2 =}; TwoDevicesON()
+       }
+    :: switchON palt {
+       :1: {= state = S2 =}; TwoDevicesON()
+       :1: {= state = S3, numOfOperation += (S3 - S2), cost[S3] = 1 =}; ThreeDevicesON()
+
+    }
+  }
+}
+
+process ThreeDevicesON()
+{
+  switchOFF palt {
+  :1: {= state = S0 =}; NoDeviceON()
+  :1: {= state = S1, cost[S1] = 1 =}; OneDeviceON()
+  :1: {= state = S2, cost[S2] = 1 =}; TwoDevicesON()
+  :1: {= state = S3 =}; ThreeDevicesON()
+  }
+}
+
+NoDeviceON()
+

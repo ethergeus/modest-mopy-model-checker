@@ -1,0 +1,79 @@
+// Description: MDP model from example 10.103 in the book "Principles of Model Checking".
+//              Reward are added on the transitions from S0 to S1, S0 to S2 and S0 to S4.
+//              This is to check the path that has the highest cost.
+action alpha, beta;
+
+int(0..8) state = 0;
+const int S0 = 0, S1 = 1, S2 = 2, S3 = 3; 
+const int S4 = 4, S5 = 5, S6 = 6, S7 = 7;
+transient int(0..1) transitions = 0;
+
+//property P0 = Pmax(<> [S(transitions) <= 3](state == S3)); // Check the max prob. of reaching state S3 within i=3
+property P1 = Pmax(<> (state == S2));
+property P2 = Pmax(<> (state == S3));
+property P3 = Pmax(<> (state == S2 ||state == S3));
+
+transient int(0..1000) cost = 0;
+property HighestCostToReachTargetStates = Xmin(S(cost), state == S2 || state == S3);
+
+process State_S0()
+{
+    alt {
+        :: alpha {= state = S1, transitions = 1, cost = 100 =}; State_S1()
+        :: beta palt {
+        :1: {= state = S2, transitions = 1, cost = 100 =}; State_S2()
+        :2: {= state = S4, transitions = 1, cost = 1 =}; State_S4()
+        }
+    }
+
+}
+
+process State_S1()
+{
+    alpha palt { 
+    :9: {= state = S1, transitions = 1 =}; State_S1()
+    :7: {= state = S2, transitions = 1 =}; State_S2()
+    :2: {= state = S3, transitions = 1 =}; State_S3()
+    }
+}
+
+process State_S2(){ alpha {= state = S2, transitions = 1 =}; State_S2() }
+process State_S3(){ alpha {= state = S3, transitions = 1 =}; State_S3() }
+
+process State_S4()
+{
+    alpha palt {
+    :1: {= state = S5, transitions = 1 =}; State_S5()
+    :3: {= state = S6, transitions = 1 =}; State_S6()
+    }
+}
+
+process State_S5()
+{
+    alt {
+        :: alpha {= state = S6, transitions = 1 =}; State_S6()
+        :: beta palt {
+        :1: {= state = S2, transitions = 1 =}; State_S2()
+        :2: {= state = S7, transitions = 1 =}; State_S7()
+        }
+    }
+
+}
+
+process State_S6()
+{
+    alpha palt {
+    :2: {= state = S5, transitions = 1 =}; State_S5()
+    :3: {= state = S6, transitions = 1 =}; State_S6()
+    }
+}
+
+process State_S7()
+{
+    alpha palt {
+    :1: {= state = S2, transitions = 1 =}; State_S2()
+    :1: {= state = S3, transitions = 1 =}; State_S3()
+    }
+}
+
+State_S0()
