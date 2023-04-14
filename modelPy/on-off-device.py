@@ -89,9 +89,9 @@ class NoDeviceONAutomaton(object):
 	
 	def __init__(self, network: Network):
 		self.network = network
-		self.transition_counts = [1, 1, 2, 2]
-		self.transition_labels = [[1], [2], [2, 1], [2, 1]]
-		self.branch_counts = [[4], [4], [3, 2], [2, 3]]
+		self.transition_counts = [2, 2, 3, 3, 1]
+		self.transition_labels = [[0, 1], [0, 2], [0, 2, 1], [0, 2, 1], [0]]
+		self.branch_counts = [[1, 4], [1, 4], [1, 3, 2], [1, 2, 3], [1]]
 	
 	def set_initial_values(self, state: State) -> None:
 		state.NoDeviceON_location = 0
@@ -111,18 +111,46 @@ class NoDeviceONAutomaton(object):
 	
 	def get_guard_value(self, state: State, transition: int) -> bool:
 		location = state.NoDeviceON_location
-		if location == 0 or location == 1:
+		if location == 4:
 			return True
+		elif location == 0:
+			if transition == 0:
+				return (state.numOfOperation >= 10)
+			elif transition == 1:
+				return (state.numOfOperation < 10)
+			else:
+				raise IndexError
+		elif location == 1:
+			if transition == 0:
+				return (state.numOfOperation >= 10)
+			elif transition == 1:
+				return (state.numOfOperation < 10)
+			else:
+				raise IndexError
 		elif location == 2:
-			return True
+			if transition == 0:
+				return (state.numOfOperation >= 10)
+			elif transition >= 1:
+				return (state.numOfOperation < 10)
+			else:
+				raise IndexError
 		elif location == 3:
-			return True
+			if transition == 0:
+				return (state.numOfOperation >= 10)
+			elif transition >= 1:
+				return (state.numOfOperation < 10)
+			else:
+				raise IndexError
 		else:
 			raise IndexError
 	
 	def get_rate_value(self, state: State, transition: int) -> Optional[float]:
 		location = state.NoDeviceON_location
-		if location == 0 or location == 1:
+		if location == 4:
+			return None
+		elif location == 0:
+			return None
+		elif location == 1:
 			return None
 		elif location == 2:
 			return None
@@ -138,32 +166,45 @@ class NoDeviceONAutomaton(object):
 		location = state.NoDeviceON_location
 		if location == 0:
 			if transition == 0:
+				return 1
+			elif transition == 1:
 				if True:
 					return (1 / 4)
 			else:
 				raise IndexError
 		elif location == 1:
 			if transition == 0:
+				return 1
+			elif transition == 1:
 				if True:
 					return (1 / 4)
 			else:
 				raise IndexError
 		elif location == 2:
 			if transition == 0:
+				return 1
+			elif transition == 1:
 				if True:
 					return (1 / 3)
-			elif transition == 1:
+			elif transition == 2:
 				if True:
 					return (1 / 2)
 			else:
 				raise IndexError
 		elif location == 3:
 			if transition == 0:
-				if True:
-					return (1 / 2)
+				return 1
 			elif transition == 1:
 				if True:
+					return (1 / 2)
+			elif transition == 2:
+				if True:
 					return (1 / 3)
+			else:
+				raise IndexError
+		elif location == 4:
+			if transition == 0:
+				return 1
 			else:
 				raise IndexError
 		else:
@@ -174,6 +215,9 @@ class NoDeviceONAutomaton(object):
 			location = state.NoDeviceON_location
 			if location == 0:
 				if transition == 0:
+					if branch == 0:
+						target_state.NoDeviceON_location = 4
+				elif transition == 1:
 					if branch == 0:
 						target_state.state = 0
 						target_state.NoDeviceON_location = 0
@@ -195,6 +239,9 @@ class NoDeviceONAutomaton(object):
 			elif location == 1:
 				if transition == 0:
 					if branch == 0:
+						target_state.NoDeviceON_location = 4
+				elif transition == 1:
+					if branch == 0:
 						target_state.state = 0
 						target_state.NoDeviceON_location = 0
 					elif branch == 1:
@@ -211,6 +258,9 @@ class NoDeviceONAutomaton(object):
 			elif location == 2:
 				if transition == 0:
 					if branch == 0:
+						target_state.NoDeviceON_location = 4
+				elif transition == 1:
+					if branch == 0:
 						target_state.state = 0
 						target_state.NoDeviceON_location = 0
 					elif branch == 1:
@@ -220,7 +270,7 @@ class NoDeviceONAutomaton(object):
 					elif branch == 2:
 						target_state.state = 2
 						target_state.NoDeviceON_location = 2
-				elif transition == 1:
+				elif transition == 2:
 					if branch == 0:
 						target_state.state = 2
 						target_state.NoDeviceON_location = 2
@@ -232,12 +282,15 @@ class NoDeviceONAutomaton(object):
 			elif location == 3:
 				if transition == 0:
 					if branch == 0:
+						target_state.NoDeviceON_location = 4
+				elif transition == 1:
+					if branch == 0:
 						target_state.state = 0
 						target_state.NoDeviceON_location = 0
 					elif branch == 1:
 						target_state.state = 1
 						target_state.NoDeviceON_location = 3
-				elif transition == 1:
+				elif transition == 2:
 					if branch == 0:
 						target_state.state = 1
 						target_state.NoDeviceON_location = 3
@@ -251,6 +304,10 @@ class NoDeviceONAutomaton(object):
 						target_state.numOfOperation = (state.numOfOperation + 2)
 						target_transient.cost[3] = 1
 						target_state.NoDeviceON_location = 1
+			elif location == 4:
+				if transition == 0:
+					if branch == 0:
+						target_state.NoDeviceON_location = 4
 
 class PropertyExpression(object):
 	__slots__ = ("op", "args")
@@ -304,8 +361,8 @@ class Network(object):
 		self.transition_labels = { 0: "τ", 1: "switchON", 2: "switchOFF" }
 		self.sync_vectors = [[0, 0], [1, 1], [2, 2]]
 		self.properties = [
-			Property("P1", PropertyExpression("p_max", [PropertyExpression("eventually", [PropertyExpression("ap", [0])])])),
-			Property("P2", PropertyExpression("p_max", [PropertyExpression("eventually", [PropertyExpression("ap", [1])])])),
+			Property("P1", PropertyExpression("p_min", [PropertyExpression("eventually", [PropertyExpression("ap", [0])])])),
+			Property("P2", PropertyExpression("p_min", [PropertyExpression("eventually", [PropertyExpression("ap", [1])])])),
 			Property("R1", PropertyExpression("e_min_s", [2, PropertyExpression("ap", [0])])),
 			Property("R2", PropertyExpression("e_min_s", [3, PropertyExpression("ap", [0])])),
 			Property("R3", PropertyExpression("e_min_s", [4, PropertyExpression("ap", [0])])),
@@ -316,7 +373,7 @@ class Network(object):
 		self.variables = [
 			VariableInfo("numOfOperation", None, "int"),
 			VariableInfo("state", None, "int", 0, 3),
-			VariableInfo("NoDeviceON_location", 0, "int", 0, 3)
+			VariableInfo("NoDeviceON_location", 0, "int", 0, 4)
 		]
 		self._aut_NoDeviceON = NoDeviceONAutomaton(self)
 		self.components = [self._aut_NoDeviceON]
@@ -337,9 +394,9 @@ class Network(object):
 	
 	def get_expression_value(self, state: State, expression: int):
 		if expression == 0:
-			return (state.numOfOperation >= 100)
-		elif expression == 1:
 			return (state.numOfOperation >= 10)
+		elif expression == 1:
+			return (state.numOfOperation >= 2)
 		elif expression == 2:
 			return (self.network._get_transient_value(state, "cost"))[1]
 		elif expression == 3:
@@ -351,9 +408,9 @@ class Network(object):
 	
 	def _get_jump_expression_value(self, state: State, transient: Transient, expression: int):
 		if expression == 0:
-			return (state.numOfOperation >= 100)
-		elif expression == 1:
 			return (state.numOfOperation >= 10)
+		elif expression == 1:
+			return (state.numOfOperation >= 2)
 		elif expression == 2:
 			return (transient.cost)[1]
 		elif expression == 3:
@@ -442,7 +499,10 @@ class Network(object):
 		for i in range(len(combs)):
 			combs[i] = Branch(probs[i], combs[i])
 		# Done
-		return list(filter(lambda b: b.probability > 0.0, combs))
+		result = list(filter(lambda b: b.probability > 0.0, combs))
+		if len(result) == 0:
+			raise ExplorationError("Invalid model: All branches of a transition have probability zero.")
+		return result
 	
 	def jump(self, state: State, transition: Transition, branch: Branch, expressions: List[int] = []) -> State:
 		transient = self._get_initial_transient()
