@@ -10,6 +10,7 @@ from mdp import *
 class ModelChecker():
     PROGRESS_INTERVAL = 2 # seconds
     MAX_RELATIVE_ERROR = 1e-6; # maximum relative error for value iteration
+    Q_LEARNING_EXPLOITATION = 0.1 # epsilon for Q-learning
 
     def __init__(self, arguments) -> None:
         # Load the model
@@ -24,14 +25,27 @@ class ModelChecker():
 
         parser.add_argument('model', type=str, help='path to the model file')
         parser.add_argument('-p', '--properties', type=str, nargs='+', default=[], help='list of properties to check (default: all)')
-        parser.add_argument('-e', '--epsilon', type=float, default=self.MAX_RELATIVE_ERROR, help=f'maximum relative error for value iteration (default: {self.MAX_RELATIVE_ERROR})')
-        parser.add_argument('-k', '--max-iterations', type=int, default=0, help=f'maximum number of iterations for value iteration, takes precedence over relative error')
+        parser.add_argument('--value-iteration', action='store_true', help='use value iteration to evaluate properties')
+        parser.add_argument('--q-learning', action='store_true', help='use Q-learning to evaluate properties')
 
         args = parser.parse_args()
-        self.e = args.epsilon
-        self.k = args.max_iterations
+        self.perform_value_iteration = args.value_iteration
+        self.perform_q_learning = args.q_learning
+        if self.perform_value_iteration:
+            parser.add_argument('-e', '--epsilon', type=float, default=self.MAX_RELATIVE_ERROR, help=f'maximum relative error for value iteration (default: {self.MAX_RELATIVE_ERROR})')
+            parser.add_argument('-k', '--max-iterations', type=int, default=0, help=f'maximum number of iterations for value iteration, takes precedence over relative error')
+            args = parser.parse_args()
+            self.e = args.epsilon
+            self.k = args.max_iterations
+        elif self.perform_q_learning:
+            parser.add_argument('-e', '--epsilon', type=float, default=self.Q_LEARNING_EXPLOITATION, help=f'epsilon for Q-learning (default: {self.Q_LEARNING_EXPLOITATION})')
+            args = parser.parse_args()
+            self.e = args.epsilon
+        else:
+            print("Error: No algorithm specified.")
+            quit()
 
-        print("Loading model from \"{0}\"...".format(args.model), end = "", flush = True)
+        print(f"Loading model from \"{args.model}\"...", end = "", flush = True)
         spec = util.spec_from_file_location("model", args.model)
         model = util.module_from_spec(spec)
         spec.loader.exec_module(model)
@@ -44,19 +58,116 @@ class ModelChecker():
         self.states = self.explore([self.network.get_initial_state()])
         print(f' found a total of {len(self.states)} states.')
 
-        # Perform model checking
-        self.check(args.properties)
+        # Perform model checking on the specified properties
+        self.check_properties(args.properties)
     
-    def check(self, properties: List[str] = []) -> None:
+    def value_iteration(self, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp: PropertyExpression, reward_exp: int, e: float, k: int = 0) -> float:
+        S = self.states # all states
+        G = [s for s in S if self.network.get_expression_value(s, goal_exp)] # goal states
+        if is_prob:
+            # Probability value iteration initialization
+            _v = {s: int(self.network.get_expression_value(s, goal_exp)) for s in S}
+        elif is_reward:
+            # Expected reward value iteration initialization
+            # In case of a maximum reward we will pre-compute states where the minimum probability is 1
+            # In case of a minimum reward we will pre-compute states where the maximum probability is 1
+            S1 = self.precompute_Smin1(goal_exp) if op.endswith('_max') else self.precompute_Smax1(goal_exp)
+
+            # Initialize value iteration, 0 where if s is in S1, +inf otherwise
+            _v = {s: 0 if s in S1 else float('inf') for s in S}
+
+            # Sanity check, G should be a subset of S1
+            for s in G:
+                assert s in S1
+        else:
+            raise ValueError('Unknown operator: {}'.format(op))
+        
+        # Value iteration
+        print('Performing value iteration...', end = '', flush = True)
+        for _ in range(k if k != 0 else sys.maxsize):
+            v = _v # v_i-1
+            _v = {} # v_i
+            for s in v:
+                if is_prob:
+                    if is_reach and s in G:
+                        _v[s] = v[s] # tau
+                    else:
+                        paths = [sum([delta.probability * v[self.network.jump(s, a, delta)] for delta in self.network.get_branches(s, a)]) for a in self.network.get_transitions(s)]
+                        _v[s] = min(paths) if op.endswith('_min') else max(paths)
+                elif is_reward:
+                    if s in G:
+                        _v[s] = 0 # we have already reached G, we need not make any further transitions
+                    elif s not in S1:
+                        _v[s] = float('inf') # reward is infinite
+                    else:
+                        paths = []
+                        for a in self.network.get_transitions(s):
+                            r = 0
+                            for delta in self.network.get_branches(s, a):
+                                reward = [reward_exp]
+                                r += delta.probability * (v[self.network.jump(s, a, delta, reward)] + reward[0])
+                            paths.append(r)
+                        _v[s] = min(paths) if op.endswith('_min_s') else max(paths)
+            
+            if e is not None:
+                if all(_v[s] == float('inf') or _v[s] == 0 or abs(_v[s] - v[s]) / _v[s] < e for s in v):
+                    break
+        
+        print(' done. ', end = '', flush = True)
+
+        return _v[self.network.get_initial_state()]
+    
+    def q_learning(self, e: float) -> float:
+        S = self.states
+        S0 = self.network.get_initial_state()
+        Q = {s: {a: 0 for a in self.network.get_transitions(s)} for s in S} # Q(s, a)
+    
+    def check_properties(self, properties: List[str] = []) -> None:
         if len(properties) == 0:
+            # No properties specified, check all properties
             properties = self.properties
         else:
             properties = [property for property in self.properties if property.name in properties]
 
         start_time = timer()
+
+        # Parse properties
         for property in properties:
-            print(f'{property} = {self.value_iteration(self.network.properties.index(property), k=self.k, e=self.e)}')
+            exp = property.exp # expression to evaluate
+            op = exp.op # operator of the expression
+            args = exp.args # arguments of the expression
+
+            # Is the expression a probability expression?
+            is_prob = exp is not None and op.startswith('p_')
+
+            # Is the expression a reachability expression?
+            is_reach = exp is not None and op == 'exists' and (args[0].op == 'eventually' and args[0].args[0].op == 'ap' or args[0].op == 'until' and args[0].args[0].op == 'ap' and args[0].args[1].op == 'ap')
+            
+            # Is the expression a reward expression?
+            is_reward = exp is not None and op.startswith('e_') and args[1].op == 'ap'
+
+            safe_exp = None # expression for the safe states (before until)
+            goal_exp = None # expression for the goal states
+            reward_exp = None # expression for the reward
+            
+            if is_reach or is_prob:
+                # Extract useful expressions from the reachability or probability expression
+                safe_exp = args[0].args[0].args[0] if args[0].op == 'until' else None
+                goal_exp = args[0].args[1].args[0] if args[0].op == 'until' else args[0].args[0].args[0]
+
+            if is_reward:
+                # Extract useful expressions from the reward expression
+                goal_exp = args[1].args[0]
+                reward_exp = exp.args[0]
+            
+            # Perform the actual computation
+            if self.perform_value_iteration:
+                print(f'{property} = {self.value_iteration(op, is_prob, is_reach, is_reward, goal_exp, reward_exp, e=self.e, k=self.k)}')
+            elif self.perform_q_learning:
+                print(f'{property} = {self.q_learning(e=self.e)}')
+        
         end_time = timer()
+
         print("Done in {0:.2f} seconds.".format(end_time - start_time))
     
     def explore(self, explored: List[State]) -> List[State]:
@@ -217,91 +328,6 @@ class ModelChecker():
                         R.append(s)
         
         return sorted(R, key=lambda s: s.__str__())
-
-    
-    def value_iteration(self, expression: int, k: int = 0, e: float = 0) -> float:
-        S = self.states # complete state space
-        exp = self.properties[expression].exp # expression to evaluate
-        op = exp.op # operator of the expression
-        args = exp.args # arguments of the expression
-
-        # Is the expression a probability expression?
-        is_prob = exp is not None and op.startswith('p_')
-
-        # Is the expression a reachability expression?
-        is_reach = exp is not None and op == 'exists' and (args[0].op == 'eventually' and args[0].args[0].op == 'ap' or args[0].op == 'until' and args[0].args[0].op == 'ap' and args[0].args[1].op == 'ap')
-        
-        # Is the expression a reward expression?
-        is_reward = exp is not None and op.startswith('e_') and args[1].op == 'ap'
-
-        safe_exp = None # expression for the safe states (before until)
-        goal_exp = None # expression for the goal states
-        reward_exp = None # expression for the reward
-        
-        if is_reach or is_prob:
-            # Extract useful expressions from the reachability or probability expression
-            safe_exp = args[0].args[0].args[0] if args[0].op == 'until' else None
-            goal_exp = args[0].args[1].args[0] if args[0].op == 'until' else args[0].args[0].args[0]
-
-        if is_reward:
-            # Extract useful expressions from the reward expression
-            goal_exp = args[1].args[0]
-            reward_exp = exp.args[0]
-        
-        G = [s for s in S if self.network.get_expression_value(s, goal_exp)] # goal states
-
-        if is_prob:
-            # Probability value iteration initialization
-            _v = {s: int(self.network.get_expression_value(s, goal_exp)) for s in S}
-        elif is_reward:
-            # Expected reward value iteration initialization
-            # In case of a maximum reward we will pre-compute states where the minimum probability is 1
-            # In case of a minimum reward we will pre-compute states where the maximum probability is 1
-            S1 = self.precompute_Smin1(goal_exp) if op.endswith('_max') else self.precompute_Smax1(goal_exp)
-
-            # Initialize value iteration, 0 where if s is in S1, +inf otherwise
-            _v = {s: 0 if s in S1 else float('inf') for s in S}
-
-            # Sanity check, G should be a subset of S1
-            for s in G:
-                assert s in S1
-        else:
-            raise ValueError('Unknown operator: {}'.format(op))
-        
-        # Value iteration
-        print('Performing value iteration...', end = '', flush = True)
-        for _ in range(k if k != 0 else sys.maxsize):
-            v = _v # v_i-1
-            _v = {} # v_i
-            for s in v:
-                if is_prob:
-                    if is_reach and s in G:
-                        _v[s] = v[s] # tau
-                    else:
-                        paths = [sum([delta.probability * v[self.network.jump(s, a, delta)] for delta in self.network.get_branches(s, a)]) for a in self.network.get_transitions(s)]
-                        _v[s] = min(paths) if op.endswith('_min') else max(paths)
-                elif is_reward:
-                    if s in G:
-                        _v[s] = 0 # we have already reached G, we need not make any further transitions
-                    elif s not in S1:
-                        _v[s] = float('inf') # reward is infinite
-                    else:
-                        paths = []
-                        for a in self.network.get_transitions(s):
-                            r = 0
-                            for delta in self.network.get_branches(s, a):
-                                reward = [reward_exp]
-                                r += delta.probability * (v[self.network.jump(s, a, delta, reward)] + reward[0])
-                            paths.append(r)
-                        _v[s] = min(paths) if op.endswith('_min_s') else max(paths)
-            
-            if e is not None:
-                if all(_v[s] == float('inf') or _v[s] == 0 or abs(_v[s] - v[s]) / _v[s] < e for s in v):
-                    break
-        
-        print(' done. ', end = '', flush = True)
-        return _v[self.network.get_initial_state()]
-
 
 if __name__ == "__main__":
     ModelChecker(sys.argv)
