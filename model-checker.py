@@ -26,24 +26,18 @@ class ModelChecker():
         parser.add_argument('model', type=str, help='path to the model file')
         parser.add_argument('-p', '--properties', type=str, nargs='+', default=[], help='list of properties to check (default: all)')
         parser.add_argument('--value-iteration', action='store_true', help='use value iteration to evaluate properties')
+        parser.add_argument('--relative-error', type=float, default=self.MAX_RELATIVE_ERROR, help=f'maximum relative error for value iteration (default: {self.MAX_RELATIVE_ERROR})')
+        parser.add_argument('-k', '--max-iterations', type=int, default=0, help=f'maximum number of iterations for value iteration, takes precedence over relative error')
         parser.add_argument('--q-learning', action='store_true', help='use Q-learning to evaluate properties')
+        parser.add_argument('-e', '--epsilon', type=float, default=self.Q_LEARNING_EXPLOITATION, help=f'epsilon (exploitation probability) for Q-learning (default: {self.Q_LEARNING_EXPLOITATION})')
 
         args = parser.parse_args()
+
+        self.epsilon = args.epsilon
+        self.relative_error = args.relative_error
+        self.max_iterations = args.max_iterations
         self.perform_value_iteration = args.value_iteration
         self.perform_q_learning = args.q_learning
-        if self.perform_value_iteration:
-            parser.add_argument('-e', '--epsilon', type=float, default=self.MAX_RELATIVE_ERROR, help=f'maximum relative error for value iteration (default: {self.MAX_RELATIVE_ERROR})')
-            parser.add_argument('-k', '--max-iterations', type=int, default=0, help=f'maximum number of iterations for value iteration, takes precedence over relative error')
-            args = parser.parse_args()
-            self.e = args.epsilon
-            self.k = args.max_iterations
-        elif self.perform_q_learning:
-            parser.add_argument('-e', '--epsilon', type=float, default=self.Q_LEARNING_EXPLOITATION, help=f'epsilon for Q-learning (default: {self.Q_LEARNING_EXPLOITATION})')
-            args = parser.parse_args()
-            self.e = args.epsilon
-        else:
-            print("Error: No algorithm specified.")
-            quit()
 
         print(f"Loading model from \"{args.model}\"...", end = "", flush = True)
         spec = util.spec_from_file_location("model", args.model)
@@ -162,9 +156,12 @@ class ModelChecker():
             
             # Perform the actual computation
             if self.perform_value_iteration:
-                print(f'{property} = {self.value_iteration(op, is_prob, is_reach, is_reward, goal_exp, reward_exp, e=self.e, k=self.k)}')
+                print(f'{property} = {self.value_iteration(op, is_prob, is_reach, is_reward, goal_exp, reward_exp, e=self.relative_error, k=self.max_iterations)}')
             elif self.perform_q_learning:
-                print(f'{property} = {self.q_learning(e=self.e)}')
+                print(f'{property} = {self.q_learning(e=self.epsilon)}')
+            else:
+                print("Error: No algorithm specified.")
+                quit()
         
         end_time = timer()
 
