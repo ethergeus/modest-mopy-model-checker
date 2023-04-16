@@ -2,58 +2,89 @@
 import sys
 from importlib import util
 from timeit import default_timer as timer
+import argparse
 
 from mdp import *
 
 
-debug = False
-debug_value_iteration = False
-debug_value_iteration_initialization = False
-debug_precomputation = False
-
-
 class ModelChecker():
-    def __init__(self, network: Network) -> None:
-        self.network = network
+    PROGRESS_INTERVAL = 2 # seconds
+    MAX_RELATIVE_ERROR = 1e-6; # maximum relative error for value iteration
 
+    def __init__(self, arguments) -> None:
+        # Load the model
+        if len(arguments) < 2:
+            print("Error: No model specified.")
+            quit()
+        
+        parser = argparse.ArgumentParser(
+            prog='model-checker.py',
+            description='Model checker for MDPs.',
+            epilog='by Andrey and Alex (Group 2)')
+
+        parser.add_argument('model', type=str, help='path to the model file')
+        parser.add_argument('-p', '--properties', type=str, nargs='+', default=[], help='list of properties to check (default: all)')
+        parser.add_argument('-e', '--epsilon', type=float, default=self.MAX_RELATIVE_ERROR, help=f'maximum relative error for value iteration (default: {self.MAX_RELATIVE_ERROR})')
+        parser.add_argument('-k', '--max-iterations', type=int, default=0, help=f'maximum number of iterations for value iteration, takes precedence over relative error')
+
+        args = parser.parse_args()
+        self.e = args.epsilon
+        self.k = args.max_iterations
+
+        print("Loading model from \"{0}\"...".format(args.model), end = "", flush = True)
+        spec = util.spec_from_file_location("model", args.model)
+        model = util.module_from_spec(spec)
+        spec.loader.exec_module(model)
+        self.network = model.Network() # create network instance
+        self.properties = self.network.properties
+        print(" done.")
+
+        # Explore state space using breadth-first search
         print('Exploring the state space...', end = '', flush = True)
-        self.states = self.explore([network.get_initial_state()])
+        self.states = self.explore([self.network.get_initial_state()])
         print(f' found a total of {len(self.states)} states.')
 
-        self.properties = network.properties
+        # Perform model checking
+        self.check(args.properties)
+    
+    def check(self, properties: List[str] = []) -> None:
+        if len(properties) == 0:
+            properties = self.properties
+        else:
+            properties = [property for property in self.properties if property.name in properties]
 
-        if debug:
-            print('Explored the following states:')
-            for state in self.states:
-                print(state)
-            print()
-
-            print('Model checks for the following properties:')
-            for i in range(len(self.properties)):
-                print(f'{i}: {self.properties[i]}')
-            print()
+        start_time = timer()
+        for property in properties:
+            print(f'{property} = {self.value_iteration(self.network.properties.index(property), k=self.k, e=self.e)}')
+        end_time = timer()
+        print("Done in {0:.2f} seconds.".format(end_time - start_time))
     
     def explore(self, explored: List[State]) -> List[State]:
-        found = True
-        t0 = timer()
+        found = True # flag to indicate if new states were found
+        t0 = timer() # timer to print progress
         while found:
             t1 = timer()
-            if t1 - t0 > 2:
+            if t1 - t0 > self.PROGRESS_INTERVAL:
+                # print progress every PROGRESS_INTERVAL seconds
                 print(f' {int(len(explored) / 1000)}k..', end = '', flush = True)
                 t0 = t1
-            found = False
+            found = False # reset flag
             for s in explored:
+                # for each state s in explored
                 for a in self.network.get_transitions(s):
+                    # for each action a in A(s)
                     for delta in self.network.get_branches(s, a):
+                        # for each target state s' in A(s)
                         _s = self.network.jump(s, a, delta)
                         if _s not in explored:
+                            # if s' is not in explored
                             explored.append(_s)
-                            found = True
+                            found = True # new state found
         
-        return sorted(explored, key=lambda s: s.__str__())
+        return sorted(explored, key=lambda s: s.__str__()) # sort states by string representation
 
     def precompute_Smin0(self, expression: int) -> List[State]:
-        print(' pre-computing Smin0...', end = '', flush = True)
+        print('Pre-computing Smin0... ', end = '', flush = True)
         S = self.states
         R = [s for s in S if self.network.get_expression_value(s, expression)]
         _R = [] # R' from the paper
@@ -81,17 +112,10 @@ class ModelChecker():
                 if forall_a and s not in R:
                     R.append(s)
         
-        if debug_precomputation:
-            print(f'{self.network.properties[expression]} Smin0:')
-            for s in S:
-                if s not in R:
-                    print(s)
-            print()
-        
         return sorted([s for s in S if s not in R], key=lambda s: s.__str__()) # S \ R
     
     def precompute_Smin1(self, expression: int) -> List[State]:
-        print(' pre-computing Smin1...', end = '', flush = True)
+        print('Pre-computing Smin1... ', end = '', flush = True)
         S = self.states
         Smin0 = self.precompute_Smin0(expression)
         R = [s for s in S if s not in Smin0]
@@ -119,17 +143,11 @@ class ModelChecker():
                 
                 if exists_a and s in R:
                     R.remove(s)
-        
-        if debug_precomputation:
-            print(f'{self.network.properties[expression]} Smin1:')
-            for s in R:
-                print(s)
-            print()
 
         return sorted(R, key=lambda s: s.__str__())
     
     def precompute_Smax0(self, expression: int) -> List[State]:
-        print(' pre-computing Smax0...', end = '', flush = True)
+        print('Pre-computing Smax0... ', end = '', flush = True)
         S = self.states
         R = [s for s in S if self.network.get_expression_value(s, expression)]
         _R = [] # R' from the paper
@@ -157,17 +175,10 @@ class ModelChecker():
                 if exists_a and s not in R:
                     R.append(s)
         
-        if debug_precomputation:
-            print(f'{self.network.properties[expression]} Smax0:')
-            for s in S:
-                if s not in R:
-                    print(s)
-            print()
-        
         return sorted([s for s in S if s not in R], key=lambda s: s.__str__()) # S \ R
     
     def precompute_Smax1(self, expression: int) -> List[State]:
-        print(' pre-computing Smax1...', end = '', flush = True)
+        print('Pre-computing Smax1... ', end = '', flush = True)
         S = self.states
         T = [s for s in S if self.network.get_expression_value(s, expression)]
         R = S.copy()
@@ -205,70 +216,61 @@ class ModelChecker():
                     if exists_a and s not in R:
                         R.append(s)
         
-        if debug_precomputation:
-            print(f'{self.network.properties[expression]} Smax1:')
-            for s in R:
-                print(s)
-            print()
-        
         return sorted(R, key=lambda s: s.__str__())
 
     
-    def value_iteration(self, expression: int, k: int = 10000, e: float = None) -> float:
-        print('Performing value iteration...', end = '', flush = True)
-        S = self.states
-        exp = self.properties[expression].exp
-        op = exp.op
-        args = exp.args
+    def value_iteration(self, expression: int, k: int = 0, e: float = 0) -> float:
+        S = self.states # complete state space
+        exp = self.properties[expression].exp # expression to evaluate
+        op = exp.op # operator of the expression
+        args = exp.args # arguments of the expression
+
+        # Is the expression a probability expression?
         is_prob = exp is not None and op.startswith('p_')
+
+        # Is the expression a reachability expression?
         is_reach = exp is not None and op == 'exists' and (args[0].op == 'eventually' and args[0].args[0].op == 'ap' or args[0].op == 'until' and args[0].args[0].op == 'ap' and args[0].args[1].op == 'ap')
-        safe_exp = None
-        goal_exp = None
-        reward_exp = None
+        
+        # Is the expression a reward expression?
+        is_reward = exp is not None and op.startswith('e_') and args[1].op == 'ap'
+
+        safe_exp = None # expression for the safe states (before until)
+        goal_exp = None # expression for the goal states
+        reward_exp = None # expression for the reward
         
         if is_reach or is_prob:
+            # Extract useful expressions from the reachability or probability expression
             safe_exp = args[0].args[0].args[0] if args[0].op == 'until' else None
             goal_exp = args[0].args[1].args[0] if args[0].op == 'until' else args[0].args[0].args[0]
 
-        is_reward = exp is not None and op.startswith('e_') and args[1].op == 'ap'
-
         if is_reward:
+            # Extract useful expressions from the reward expression
             goal_exp = args[1].args[0]
             reward_exp = exp.args[0]
         
-        G = [s for s in S if self.network.get_expression_value(s, goal_exp)]
+        G = [s for s in S if self.network.get_expression_value(s, goal_exp)] # goal states
+
         if is_prob:
             # Probability value iteration initialization
             _v = {s: int(self.network.get_expression_value(s, goal_exp)) for s in S}
         elif is_reward:
             # Expected reward value iteration initialization
+            # In case of a maximum reward we will pre-compute states where the minimum probability is 1
+            # In case of a minimum reward we will pre-compute states where the maximum probability is 1
             S1 = self.precompute_Smin1(goal_exp) if op.endswith('_max') else self.precompute_Smax1(goal_exp)
+
+            # Initialize value iteration, 0 where if s is in S1, +inf otherwise
             _v = {s: 0 if s in S1 else float('inf') for s in S}
+
+            # Sanity check, G should be a subset of S1
             for s in G:
                 assert s in S1
         else:
             raise ValueError('Unknown operator: {}'.format(op))
         
-        if debug_value_iteration_initialization:
-            print('S1:')
-            for s in S1:
-                print(s)
-            print()
-
-            print('G:')
-            for s in G:
-                print(s)
-            print()
-
-            print('v:')
-            for s in _v:
-                print(s, _v[s])
-            print()
-        
-        if e is not None:
-            k = sys.maxsize
-        
-        for i in range(k):
+        # Value iteration
+        print('Performing value iteration...', end = '', flush = True)
+        for _ in range(k if k != 0 else sys.maxsize):
             v = _v # v_i-1
             _v = {} # v_i
             for s in v:
@@ -293,59 +295,13 @@ class ModelChecker():
                             paths.append(r)
                         _v[s] = min(paths) if op.endswith('_min_s') else max(paths)
             
-            if debug_value_iteration:
-                print(f'VI step {i}:')
-                for s, P in _v.items():
-                    print(f'{s}: {P}')
-                print()
-            
             if e is not None:
                 if all(_v[s] == float('inf') or _v[s] == 0 or abs(_v[s] - v[s]) / _v[s] < e for s in v):
                     break
         
         print(' done. ', end = '', flush = True)
-        return _v[network.get_initial_state()]
+        return _v[self.network.get_initial_state()]
 
 
 if __name__ == "__main__":
-    # Load the model
-    if len(sys.argv) < 2:
-        print("Error: No model specified.")
-        quit()
-    print("Loading model from \"{0}\"...".format(sys.argv[1]), end = "", flush = True)
-    spec = util.spec_from_file_location("model", sys.argv[1])
-    model = util.module_from_spec(spec)
-    spec.loader.exec_module(model)
-    network = model.Network() # create network instance
-    print(" done.")
-
-    start_time = timer()
-
-    model_checker = ModelChecker(network)
-
-    if debug_precomputation:
-        print(f'{network.properties[0]} Smin0:')
-        for model in model_checker.precompute_Smin0(0):
-            print(model)
-        print()
-
-        print(f'{network.properties[0]} Smin1:')
-        for model in model_checker.precompute_Smin1(0):
-            print(model)
-        print()
-
-        print(f'{network.properties[0]} Smax0:')
-        for model in model_checker.precompute_Smax0(0):
-            print(model)
-        print()
-
-        print(f'{network.properties[0]} Smax1:')
-        for model in model_checker.precompute_Smax1(0):
-            print(model)
-        print()
-    
-    for property in network.properties:
-        print(f'{property} = {model_checker.value_iteration(network.properties.index(property), e=1e-6)}')
-
-    end_time = timer()
-    print("Done in {0:.2f} seconds.".format(end_time - start_time))
+    ModelChecker(sys.argv)
