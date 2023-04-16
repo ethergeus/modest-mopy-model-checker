@@ -1,3 +1,4 @@
+#!/bin/python3
 import sys
 from importlib import util
 from timeit import default_timer as timer
