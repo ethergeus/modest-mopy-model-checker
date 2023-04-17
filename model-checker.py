@@ -14,7 +14,7 @@ class ModelChecker():
     Q_LEARNING_EXPLORATION = 0.1 # epsilon for Q-learning
     Q_LEARNING_RATE = 0.1 # alpha for Q-learning
     Q_LEARNING_DISCOUNT = 0.9 # gamma for Q-learning
-    Q_LEARNING_RUNS = 10000 # number of runs for Q-learning
+    Q_LEARNING_RUNS = 20000 # number of runs for Q-learning
 
     def __init__(self, arguments) -> None:
         # Load the model
@@ -148,7 +148,7 @@ class ModelChecker():
                 D = self.network.get_branches(s, a)
                 delta = random.choices(D, weights=[delta.probability for delta in D])[0]
                 
-                # Compute reward
+                # Take transition and extract reward
                 reward = [reward_exp]
                 _s = self.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
 
@@ -156,7 +156,7 @@ class ModelChecker():
                 Q[s][a.label] += alpha * (reward[0] + gamma * self.opt(op, Q[_s].values()) - Q[s][a.label])
 
                 # If we have reached a terminal state, break
-                if _s == s and len(A) == 1:
+                if _s == s and len(A) == 1 and len(D) == 1:
                     break # if term(s')
         
         if self.args.verbose:
