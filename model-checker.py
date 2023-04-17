@@ -66,7 +66,7 @@ class ModelChecker():
             # Expected reward value iteration initialization
             # In case of a maximum reward we will pre-compute states where the minimum probability is 1
             # In case of a minimum reward we will pre-compute states where the maximum probability is 1
-            S1 = self.precompute_Smin1(goal_exp) if op.endswith('_max') else self.precompute_Smax1(goal_exp)
+            S1 = self.precompute_Smin1(goal_exp) if op.find('max') != -1 else self.precompute_Smax1(goal_exp)
 
             # Initialize value iteration, 0 where if s is in S1, +inf otherwise
             _v = {s: 0 if s in S1 else float('inf') for s in S}
@@ -91,7 +91,7 @@ class ModelChecker():
                         _v[s] = v[s] # tau
                     else:
                         paths = [sum([delta.probability * v[self.network.jump(s, a, delta)] for delta in self.network.get_branches(s, a)]) for a in self.network.get_transitions(s)]
-                        _v[s] = min(paths) if op.endswith('_min') else max(paths)
+                        _v[s] = self.opt(op, paths)
                 elif is_reward:
                     if s in G:
                         _v[s] = 0 # we have already reached G, we need not make any further transitions
@@ -105,7 +105,7 @@ class ModelChecker():
                                 reward = [reward_exp]
                                 r += delta.probability * (v[self.network.jump(s, a, delta, reward)] + reward[0])
                             paths.append(r)
-                        _v[s] = min(paths) if op.endswith('_min_s') else max(paths)
+                        _v[s] = self.opt(op, paths)
             
             if k == 0:
                 if all(_v[s] == float('inf') or _v[s] == 0 or abs(_v[s] - v[s]) / _v[s] < error for s in v):
@@ -135,14 +135,14 @@ class ModelChecker():
         for _ in range(k if k != 0 else self.Q_LEARNING_RUNS):
             _s = SI
 
-            # While not in a terminal state
-            while True:
+            # While not in a goal state
+            while _s not in G:
                 s = _s
                 A = self.network.get_transitions(s)
                 if random.uniform(0, 1) < epsilon:
                     a = random.choice(A) # Exploration
                 else:
-                    a = max(A, key=lambda a: Q[s][a.label]) if op.endswith('_max_s') else max(A, key=lambda a: Q[s][a.label]) # Exploitation
+                    a = self.opt(op, A, key=lambda a: Q[s][a.label]) # Exploitation
                 
                 # Take random transition
                 D = self.network.get_branches(s, a)
@@ -153,10 +153,10 @@ class ModelChecker():
                 _s = self.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
 
                 # Update Q value in table
-                Q[s][a.label] += alpha * (reward[0] + gamma * (max(Q[_s].values()) if op.endswith('_max_s') else min(Q[_s].values())) - Q[s][a.label])
+                Q[s][a.label] += alpha * (reward[0] + gamma * self.opt(op, Q[_s].values()) - Q[s][a.label])
 
                 # If we have reached a terminal state, break
-                if _s in G or _s == s and len(A) == 1:
+                if _s == s and len(A) == 1:
                     break # if term(s')
         
         if self.args.verbose:
@@ -375,6 +375,14 @@ class ModelChecker():
                         R.append(s)
         
         return sorted(R, key=lambda s: s.__str__())
+    
+    def opt(self, op: str, val: List[float], key=lambda x: x) -> float:
+        if op.find('min') != -1:
+            return min(val, key=key)
+        elif op.find('max') != -1:
+            return max(val, key=key)
+        else:
+            raise Exception('Unknown operator: ' + op)
 
 if __name__ == "__main__":
     ModelChecker(sys.argv)
