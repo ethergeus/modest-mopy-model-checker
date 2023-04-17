@@ -3,6 +3,7 @@ import sys
 from importlib import util
 from timeit import default_timer as timer
 import argparse
+import random
 
 from mdp import *
 
@@ -10,7 +11,10 @@ from mdp import *
 class ModelChecker():
     PROGRESS_INTERVAL = 2 # seconds
     MAX_RELATIVE_ERROR = 1e-6; # maximum relative error for value iteration
-    Q_LEARNING_EXPLOITATION = 0.1 # epsilon for Q-learning
+    Q_LEARNING_EXPLORATION = 0.1 # epsilon for Q-learning
+    Q_LEARNING_RATE = 0.1 # alpha for Q-learning
+    Q_LEARNING_DISCOUNT = 0.9 # gamma for Q-learning
+    Q_LEARNING_RUNS = 10000 # number of runs for Q-learning
 
     def __init__(self, arguments) -> None:
         # Load the model
@@ -24,23 +28,20 @@ class ModelChecker():
             epilog='by Andrey and Alex (Group 2)')
 
         parser.add_argument('model', type=str, help='path to the model file')
+        parser.add_argument('-v', '--verbose', action='store_true', help='print verbose output')
         parser.add_argument('-p', '--properties', type=str, nargs='+', default=[], help='list of properties to check (default: all)')
         parser.add_argument('--value-iteration', action='store_true', help='use value iteration to evaluate properties')
         parser.add_argument('--relative-error', type=float, default=self.MAX_RELATIVE_ERROR, help=f'maximum relative error for value iteration (default: {self.MAX_RELATIVE_ERROR})')
         parser.add_argument('-k', '--max-iterations', type=int, default=0, help=f'maximum number of iterations for value iteration, takes precedence over relative error')
         parser.add_argument('--q-learning', action='store_true', help='use Q-learning to evaluate properties')
-        parser.add_argument('-e', '--epsilon', type=float, default=self.Q_LEARNING_EXPLOITATION, help=f'epsilon (exploitation probability) for Q-learning (default: {self.Q_LEARNING_EXPLOITATION})')
+        parser.add_argument('-e', '--epsilon', type=float, default=self.Q_LEARNING_EXPLORATION, help=f'epsilon (exploration probability) for Q-learning (default: {self.Q_LEARNING_EXPLORATION})')
+        parser.add_argument('-a', '--alpha', type=float, default=self.Q_LEARNING_RATE, help=f'alpha (learning rate) for Q-learning (default: {self.Q_LEARNING_RATE})')
+        parser.add_argument('-g', '--gamma', type=float, default=self.Q_LEARNING_DISCOUNT, help=f'gamma (discount factor) for Q-learning (default: {self.Q_LEARNING_DISCOUNT})')
 
-        args = parser.parse_args()
+        self.args = parser.parse_args()
 
-        self.epsilon = args.epsilon
-        self.relative_error = args.relative_error
-        self.max_iterations = args.max_iterations
-        self.perform_value_iteration = args.value_iteration
-        self.perform_q_learning = args.q_learning
-
-        print(f"Loading model from \"{args.model}\"...", end = "", flush = True)
-        spec = util.spec_from_file_location("model", args.model)
+        print(f"Loading model from \"{self.args.model}\"...", end = "", flush = True)
+        spec = util.spec_from_file_location("model", self.args.model)
         model = util.module_from_spec(spec)
         spec.loader.exec_module(model)
         self.network = model.Network() # create network instance
@@ -53,9 +54,9 @@ class ModelChecker():
         print(f' found a total of {len(self.states)} states.')
 
         # Perform model checking on the specified properties
-        self.check_properties(args.properties)
+        self.check_properties(self.args.properties)
     
-    def value_iteration(self, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp: PropertyExpression, reward_exp: int, e: float, k: int = 0) -> float:
+    def _value_iteration(self, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp: PropertyExpression, reward_exp: int) -> float:
         S = self.states # all states
         G = [s for s in S if self.network.get_expression_value(s, goal_exp)] # goal states
         if is_prob:
@@ -75,6 +76,9 @@ class ModelChecker():
                 assert s in S1
         else:
             raise ValueError('Unknown operator: {}'.format(op))
+        
+        k = self.args.max_iterations
+        error = self.args.relative_error
         
         # Value iteration
         print('Performing value iteration...', end = '', flush = True)
@@ -103,18 +107,64 @@ class ModelChecker():
                             paths.append(r)
                         _v[s] = min(paths) if op.endswith('_min_s') else max(paths)
             
-            if e is not None:
-                if all(_v[s] == float('inf') or _v[s] == 0 or abs(_v[s] - v[s]) / _v[s] < e for s in v):
+            if k == 0:
+                if all(_v[s] == float('inf') or _v[s] == 0 or abs(_v[s] - v[s]) / _v[s] < error for s in v):
                     break
         
         print(' done. ', end = '', flush = True)
 
         return _v[self.network.get_initial_state()]
     
-    def q_learning(self, e: float) -> float:
+    def _q_learning(self, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp: PropertyExpression, reward_exp) -> float:
+        if not is_reward:
+            return None
+        
         S = self.states
-        S0 = self.network.get_initial_state()
-        Q = {s: {a: 0 for a in self.network.get_transitions(s)} for s in S} # Q(s, a)
+
+        G = [s for s in S if self.network.get_expression_value(s, goal_exp)] # goal states
+
+        Q = {s: {a.label: 0 for a in self.network.get_transitions(s)} for s in S} # Q(s, a)
+
+        SI = self.network.get_initial_state()
+
+        k = self.args.max_iterations
+        alpha = self.args.alpha
+        gamma = self.args.gamma
+        epsilon = self.args.epsilon
+
+        for _ in range(k if k != 0 else self.Q_LEARNING_RUNS):
+            _s = SI
+
+            # While not in a terminal state
+            while True:
+                s = _s
+                A = self.network.get_transitions(s)
+                if random.uniform(0, 1) < epsilon:
+                    a = random.choice(A) # Exploration
+                else:
+                    a = max(A, key=lambda a: Q[s][a.label]) if op.endswith('_max_s') else max(A, key=lambda a: Q[s][a.label]) # Exploitation
+                
+                # Take random transition
+                D = self.network.get_branches(s, a)
+                delta = random.choices(D, weights=[delta.probability for delta in D])[0]
+                
+                # Compute reward
+                reward = [reward_exp]
+                _s = self.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
+
+                # Update Q value in table
+                Q[s][a.label] += alpha * (reward[0] + gamma * (max(Q[_s].values()) if op.endswith('_max_s') else min(Q[_s].values())) - Q[s][a.label])
+
+                # If we have reached a terminal state, break
+                if _s in G or _s == s and len(A) == 1:
+                    break # if term(s')
+        
+        if self.args.verbose:
+            for s in S:
+                for a in self.network.get_transitions(s):
+                    print('Q({}, {}) = {}'.format(s, a.label, Q[s][a.label]))
+        
+        return max(Q[SI].values()) if op.endswith('_max_s') else min(Q[SI].values())
     
     def check_properties(self, properties: List[str] = []) -> None:
         if len(properties) == 0:
@@ -155,10 +205,10 @@ class ModelChecker():
                 reward_exp = exp.args[0]
             
             # Perform the actual computation
-            if self.perform_value_iteration:
-                print(f'{property} = {self.value_iteration(op, is_prob, is_reach, is_reward, goal_exp, reward_exp, e=self.relative_error, k=self.max_iterations)}')
-            elif self.perform_q_learning:
-                print(f'{property} = {self.q_learning(e=self.epsilon)}')
+            if self.args.value_iteration:
+                print(f'{property} = {self._value_iteration(op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
+            elif self.args.q_learning:
+                print(f'{property} = {self._q_learning(op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
             else:
                 print("Error: No algorithm specified.")
                 quit()
