@@ -5,7 +5,12 @@ from timeit import default_timer as timer
 import argparse
 import random
 
-from mdp import *
+try:
+    # Try to import the mdp module from the current directory (a simple example MDP with all classes implemented)
+    # This is useful for testing the model checker and autocompletion in IDEs
+    from mdp import *
+except ImportError:
+    pass
 
 
 class ModelChecker():
@@ -44,19 +49,21 @@ class ModelChecker():
         spec = util.spec_from_file_location("model", self.args.model)
         model = util.module_from_spec(spec)
         spec.loader.exec_module(model)
+        self.states = [] # list of all states
         self.network = model.Network() # create network instance
         self.properties = self.network.properties
         print(" done.")
-
-        # Explore state space using breadth-first search
-        print('Exploring the state space...', end = '', flush = True)
-        self.states = self.explore([self.network.get_initial_state()])
-        print(f' found a total of {len(self.states)} states.')
 
         # Perform model checking on the specified properties
         self.check_properties(self.args.properties)
     
     def _value_iteration(self, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp: PropertyExpression, reward_exp: int) -> float:
+        # Explore state space using breadth-first search
+        if len(self.states) == 0:
+            print('Exploring the state space...', end = '', flush = True)
+            self.states = self.explore([self.network.get_initial_state()])
+            print(f' found a total of {len(self.states)} states.')
+        
         S = self.states # all states
         G = [s for s in S if self.network.get_expression_value(s, goal_exp)] # goal states
         if is_prob:
@@ -117,15 +124,13 @@ class ModelChecker():
     
     def _q_learning(self, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp: PropertyExpression, reward_exp) -> float:
         if not is_reward:
-            return None
+            return None # Q-learning only works for expected reward properties
+
+        SI = self.network.get_initial_state() # initial state
         
-        S = self.states
+        S = [] # all states
 
-        G = [s for s in S if self.network.get_expression_value(s, goal_exp)] # goal states
-
-        Q = {s: {a.label: 0 for a in self.network.get_transitions(s)} for s in S} # Q(s, a)
-
-        SI = self.network.get_initial_state()
+        Q = {SI: {a.label: 0 for a in self.network.get_transitions(SI)}} # Q(s, a) initialized to 0 for all transitions in initial state SI
 
         k = self.args.max_iterations
         alpha = self.args.alpha
@@ -133,10 +138,10 @@ class ModelChecker():
         epsilon = self.args.epsilon
 
         for _ in range(k if k != 0 else self.Q_LEARNING_RUNS):
-            _s = SI
+            _s = SI # reset state to initial state
 
             # While not in a goal state
-            while _s not in G:
+            while not self.network.get_expression_value(_s, goal_exp):
                 s = _s
                 A = self.network.get_transitions(s)
                 if random.uniform(0, 1) < epsilon:
@@ -152,10 +157,15 @@ class ModelChecker():
                 reward = [reward_exp]
                 _s = self.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
 
+                # Check if we already have a Q value for s'
+                if _s not in Q:
+                    Q[_s] = {a.label: 0 for a in self.network.get_transitions(_s)}
+
                 # Update Q value in table
                 Q[s][a.label] += alpha * (reward[0] + gamma * self.opt(op, Q[_s].values()) - Q[s][a.label])
 
                 # If we have reached a terminal state, break
+                # The only possible transition is to itself, i.e., s' = s (tau loop)
                 if _s == s and len(A) == 1 and len(D) == 1:
                     break # if term(s')
         
