@@ -72,7 +72,7 @@ $ modest export-to-python mdp.modest --output mdp.py
 After exporting to Python we can start model checking:
 
 ```
-./model-checker.py [arguments]
+./model-checker.py mdp.py [arguments]
 ```
 
 Example:
