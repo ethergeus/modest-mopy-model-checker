@@ -56,7 +56,7 @@ class ModelChecker():
         # Perform model checking on the specified properties
         self.check_properties(self.args.properties)
     
-    def _value_iteration(self, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp: PropertyExpression, reward_exp: int) -> float:
+    def _value_iteration(self, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
         # Explore state space using breadth-first search
         if len(self.states) == 0:
             print('Exploring the state space...', end = '', flush = True)
@@ -121,7 +121,7 @@ class ModelChecker():
 
         return _v[self.network.get_initial_state()]
     
-    def _q_learning(self, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp: PropertyExpression, reward_exp) -> float:
+    def _q_learning(self, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
         if not is_reward:
             return None # Q-learning only works for expected reward properties
 
@@ -168,7 +168,7 @@ class ModelChecker():
         
         return max(Q[SI].values()) if op.endswith('_max_s') else min(Q[SI].values())
     
-    def check_properties(self, properties: List[str] = []) -> None:
+    def check_properties(self, properties = []) -> None:
         if len(properties) == 0:
             # No properties specified, check all properties
             properties = self.properties
@@ -219,7 +219,7 @@ class ModelChecker():
 
         print("Done in {0:.2f} seconds.".format(end_time - start_time))
     
-    def explore(self, explored: List[State]) -> List[State]:
+    def explore(self, explored):
         found = True # flag to indicate if new states were found
         t0 = timer() # timer to print progress
         while found:
@@ -243,7 +243,7 @@ class ModelChecker():
         
         return sorted(explored, key=lambda s: s.__str__()) # sort states by string representation
 
-    def precompute_Smin0(self, expression: int) -> List[State]:
+    def precompute_Smin0(self, expression: int):
         print('Pre-computing Smin0... ', end = '', flush = True)
         S = self.states
         R = [s for s in S if self.network.get_expression_value(s, expression)]
@@ -274,7 +274,7 @@ class ModelChecker():
         
         return sorted([s for s in S if s not in R], key=lambda s: s.__str__()) # S \ R
     
-    def precompute_Smin1(self, expression: int) -> List[State]:
+    def precompute_Smin1(self, expression: int):
         print('Pre-computing Smin1... ', end = '', flush = True)
         S = self.states
         Smin0 = self.precompute_Smin0(expression)
@@ -306,7 +306,7 @@ class ModelChecker():
 
         return sorted(R, key=lambda s: s.__str__())
     
-    def precompute_Smax0(self, expression: int) -> List[State]:
+    def precompute_Smax0(self, expression: int):
         print('Pre-computing Smax0... ', end = '', flush = True)
         S = self.states
         R = [s for s in S if self.network.get_expression_value(s, expression)]
@@ -337,7 +337,7 @@ class ModelChecker():
         
         return sorted([s for s in S if s not in R], key=lambda s: s.__str__()) # S \ R
     
-    def precompute_Smax1(self, expression: int) -> List[State]:
+    def precompute_Smax1(self, expression: int):
         print('Pre-computing Smax1... ', end = '', flush = True)
         S = self.states
         T = [s for s in S if self.network.get_expression_value(s, expression)]
@@ -378,7 +378,7 @@ class ModelChecker():
         
         return sorted(R, key=lambda s: s.__str__())
     
-    def opt(self, op: str, val: List[float], key=lambda x: x) -> float:
+    def opt(self, op: str, val, key=lambda x: x) -> float:
         if op.find('min') != -1:
             return min(val, key=key)
         elif op.find('max') != -1:
