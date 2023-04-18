@@ -33,7 +33,6 @@ class ModelChecker():
             epilog='by Andrey and Alex (Group 2)')
 
         parser.add_argument('model', type=str, help='path to the model file')
-        parser.add_argument('-v', '--verbose', action='store_true', help='print verbose output')
         parser.add_argument('-p', '--properties', type=str, nargs='+', default=[], help='list of properties to check (default: all)')
         parser.add_argument('--value-iteration', action='store_true', help='use value iteration to evaluate properties')
         parser.add_argument('--relative-error', type=float, default=self.MAX_RELATIVE_ERROR, help=f'maximum relative error for value iteration (default: {self.MAX_RELATIVE_ERROR})')
@@ -128,8 +127,6 @@ class ModelChecker():
 
         SI = self.network.get_initial_state() # initial state
         
-        S = [] # all states
-
         Q = {SI: {a.label: 0 for a in self.network.get_transitions(SI)}} # Q(s, a) initialized to 0 for all transitions in initial state SI
 
         k = self.args.max_iterations
@@ -168,11 +165,6 @@ class ModelChecker():
                 # The only possible transition is to itself, i.e., s' = s (tau loop)
                 if _s == s and len(A) == 1 and len(D) == 1:
                     break # if term(s')
-        
-        if self.args.verbose:
-            for s in S:
-                for a in self.network.get_transitions(s):
-                    print('Q({}, {}) = {}'.format(s, a.label, Q[s][a.label]))
         
         return max(Q[SI].values()) if op.endswith('_max_s') else min(Q[SI].values())
     
