@@ -9,7 +9,7 @@ class DQNetwork(nn.Module):
     def __init__(self, alpha, input_dims, fc1_dims, fc2_dims, action_space):
         super(DQNetwork, self).__init__()
         # Action space, used to map actions to indices of output layer
-        self.action_space = action_space # dict of {index: action}
+        self.action_space = action_space # dict of {action: index}
         self.input_dims = input_dims # list of input dimensions
         self.fc1_dims = fc1_dims # number of neurons in first hidden layer
         self.fc2_dims = fc2_dims # number of neurons in second hidden layer
@@ -42,7 +42,7 @@ class Agent():
         self.mem_size = max_mem_size # maximum memory size
         self.eps_min = eps_min # minimum exploration rate
         self.eps_dec = eps_dec # exploration rate decay
-        self.action_space = {i: a for i, a in enumerate(actions)} # dict of {index: action}
+        self.action_space = {a: i for i, a in enumerate(actions)} # dict of {action: index}
         self.mem_cntr = 0 # memory counter
         self.opt = opt # function to determine what is considered optimal, i.e., max or min
 
@@ -58,7 +58,7 @@ class Agent():
         self.state_memory[index] = state # store state
         self._state_memory[index] = _state # store next state
         self.reward_memory[index] = reward # store reward
-        self.action_memory[index] = action # store action
+        self.action_memory[index] = self.action_space[action] # store action
         self.terminal_memory[index] = done # store terminal state
         self.mem_cntr += 1 # increment memory counter
 
