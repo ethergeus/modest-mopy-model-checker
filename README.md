@@ -236,6 +236,32 @@ $ modest modes modelModest/g7-dnd.modest --learn Qlearning --props "playerHPLeft
     α:         0.050000000000000044
 ```
 
+### Deep Q-learning
+
+Deep Q learning is implemented in `model-checker.py` and can be used by supplying the `--deep-q-learning` flag. The implementation is based on the [PyTorch DQN tutorial](https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html).
+
+TODO:
+- [✔️] Implement minimum and maximum probability queries
+- [ ] Implement target network (double DQN)
+
+```bash
+(modest-dql) andrey@Andreys-Mac-mini ~/P/modest-mopy-model-checker> python model-checker.py modelPy/demo-mdp-2.py --deep-q-learning --gamma 0.9 --epsilon-start 0.1 --epsilon-min 0.1 -v
+Loading model from "modelPy/demo-mdp-2.py"... done.
+P1: p_max(eventually(ap(0))) = None
+P2: p_max(eventually(ap(1))) = None
+Exploring the state space... found a total of 5 states and 3 transitions.
+P3: e_max_s(2, ap(3)) = 4.112936496734619 4204
+P4: e_min_s(2, ap(0)) = 2.22222256660461434947
+Done in 139.25 seconds.
+(modest-dql) andrey@Andreys-Mac-mini ~/P/modest-mopy-model-checker> python model-checker.py modelPy/demo-mdp-2.py --q-learning --gamma 0.9 --epsilon 0.1
+Loading model from "modelPy/demo-mdp-2.py"... done.
+P1: p_max(eventually(ap(0))) = None
+P2: p_max(eventually(ap(1))) = None
+P3: e_max_s(2, ap(3)) = 3.7881236216617262
+P4: e_min_s(2, ap(0)) = 0.0
+Done in 1.27 seconds.
+```
+
 ### Value iteration
 
 Example:

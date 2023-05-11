@@ -5,12 +5,7 @@ from timeit import default_timer as timer
 import argparse
 import random
 
-try:
-    # Try to import the mdp module from the current directory (a simple example MDP with all classes implemented)
-    # This is useful for testing the model checker and autocompletion in IDEs
-    from mdp import *
-except ImportError:
-    pass
+from deepq import DQNetwork, Agent
 
 
 class ModelChecker():
@@ -19,7 +14,14 @@ class ModelChecker():
     Q_LEARNING_EXPLORATION = 0.1 # epsilon for Q-learning
     Q_LEARNING_RATE = 0.1 # alpha for Q-learning
     Q_LEARNING_DISCOUNT = 0.9 # gamma for Q-learning
-    Q_LEARNING_RUNS = 20000 # number of runs for Q-learning
+    Q_LEARNING_RUNS = 5000 # number of runs for Q-learning
+
+    MAX_MEM_SIZE = 100000 # maximum memory size for deep Q-learning
+    BATCH_SIZE = 64 # batch size for deep Q-learning
+    UPDATE_INTERVAL = 1000 # number of steps between target network updates for deep Q-learning
+    EPSILON_START = 1.0 # starting epsilon for deep Q-learning
+    EPSILON_MIN = 0.01 # ending epsilon for deep Q-learning
+    EPSILON_DECAY = 0.995 # epsilon decay for deep Q-learning
 
     def __init__(self, arguments) -> None:
         # Load the model
@@ -30,7 +32,7 @@ class ModelChecker():
         parser = argparse.ArgumentParser(
             prog='model-checker.py',
             description='Model checker for MDPs.',
-            epilog='by Andrey and Alex (Group 2)')
+            epilog='Originally created by Andrey and Alex (Group 2) for the course Probabilistic Model Checking, continued by Andrey Antonowycz for Capita Selecta')
 
         parser.add_argument('model', type=str, help='path to the model file')
         parser.add_argument('-p', '--properties', type=str, nargs='+', default=[], help='list of properties to check (default: all)')
@@ -42,6 +44,17 @@ class ModelChecker():
         parser.add_argument('-a', '--alpha', type=float, default=self.Q_LEARNING_RATE, help=f'alpha (learning rate) for Q-learning (default: {self.Q_LEARNING_RATE})')
         parser.add_argument('-g', '--gamma', type=float, default=self.Q_LEARNING_DISCOUNT, help=f'gamma (discount factor) for Q-learning (default: {self.Q_LEARNING_DISCOUNT})')
 
+        # Deep Q-learning parameters
+        parser.add_argument('--deep-q-learning', action='store_true', help='use deep Q-learning to evaluate properties')
+        parser.add_argument('--max-mem-size', type=int, default=self.MAX_MEM_SIZE, help=f'maximum size of the replay memory (default: {self.MAX_MEM_SIZE})')
+        parser.add_argument('--batch-size', type=int, default=self.BATCH_SIZE, help=f'batch size for training (default: {self.BATCH_SIZE})')
+        parser.add_argument('--update-interval', type=int, default=self.UPDATE_INTERVAL, help=f'number of steps between target network updates (default: {self.UPDATE_INTERVAL})')
+        parser.add_argument('--epsilon-start', type=float, default=self.EPSILON_START, help=f'initial epsilon (exploration probability) (default: {self.EPSILON_START})')
+        parser.add_argument('--epsilon-min', type=float, default=self.EPSILON_MIN, help=f'minimum epsilon (exploration probability) (default: {self.EPSILON_MIN})')
+        parser.add_argument('--epsilon-decay', type=float, default=self.EPSILON_DECAY, help=f'epsilon decay rate (default: {self.EPSILON_DECAY})')
+
+        parser.add_argument('--verbose', '-v', action='store_true', help='print progress information')
+
         self.args = parser.parse_args()
 
         print(f"Loading model from \"{self.args.model}\"...", end = "", flush = True)
@@ -49,6 +62,7 @@ class ModelChecker():
         model = util.module_from_spec(spec)
         spec.loader.exec_module(model)
         self.states = [] # list of all states
+        self.transitions = [] # list of all transitions
         self.network = model.Network() # create network instance
         self.properties = self.network.properties
         print(" done.")
@@ -166,7 +180,61 @@ class ModelChecker():
                 if _s == s and len(A) == 1 and len(D) == 1:
                     break # if term(s')
         
-        return max(Q[SI].values()) if op.endswith('_max_s') else min(Q[SI].values())
+        return self.opt_fn(op)(Q[SI].values())
+    
+    def _deep_q_learning(self, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
+        if not is_reward:
+            return None # Q-learning only works for expected reward properties
+        
+        SI = self.network.get_initial_state() # initial state
+        
+        # Explore state space using breadth-first search
+        if len(self.transitions) == 0:
+            print('Exploring the state space...', end = '', flush = True)
+            self.states, self.transitions = self.explore([self.network.get_initial_state()])
+            print(f' found a total of {len(self.states)} states and {len(self.transitions)} transitions.')
+        
+        agent = Agent(gamma=self.args.gamma, epsilon=self.args.epsilon_start, alpha=self.args.alpha, input_dims=[len(self.states)], actions=self.transitions,
+                      max_mem_size=self.args.max_mem_size, batch_size=self.args.batch_size, eps_min=self.args.epsilon_min, eps_dec=self.args.epsilon_decay, opt=self.opt_fn(op))
+
+        k = self.args.max_iterations
+        t0 = timer()
+        for run in range(k if k != 0 else self.Q_LEARNING_RUNS):
+            done = False # whether we have reached a terminal state
+            s = SI # reset state to initial state
+            obs = [self.states.index(s) == i for i in range(len(self.states))]
+
+            if self.args.verbose:
+                # Choose action greedily for initial state
+                _, q_value = agent.choose_action([self.states.index(SI) == i for i in range(len(self.states))], [a.label for a in self.network.get_transitions(SI)], force_greedy=True)
+
+                t1 = timer()
+                if t1 - t0 > self.PROGRESS_INTERVAL:
+                    print(f'Progress: Q = {q_value:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}', end = '\r', flush = True)
+                    t0 = t1
+            
+            while not done:
+                A = self.network.get_transitions(s) # possible actions
+                action, _ = agent.choose_action(obs, [a.label for a in A]) # choose action label from network
+                a = next(a for a in A if a.label == action) # get action from label
+                assert a in A
+                D = self.network.get_branches(s, a) # possible transitions
+                delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
+                reward = [reward_exp]
+                _s = self.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
+                _obs = [self.states.index(_s) == i for i in range(len(self.states))] # get observation from state
+
+                # If we have reached a terminal state, break
+                # The only possible transition is to itself, i.e., s' = s (tau loop) or the goal expression is satisfied
+                if _s == s and len(A) == 1 and len(D) == 1 or self.network.get_expression_value(_s, goal_exp):
+                    done = True # if term(s')
+                
+                agent.store_transition(obs, action, reward[0], _obs, done) # store transition in replay buffer
+                s, obs = _s, _obs # update state and observation
+                agent.learn() # train agent
+        
+        _, q_value = agent.choose_action([self.states.index(SI) == i for i in range(len(self.states))], [a.label for a in self.network.get_transitions(SI)], force_greedy=True)
+        return q_value
     
     def check_properties(self, properties = []) -> None:
         if len(properties) == 0:
@@ -211,6 +279,8 @@ class ModelChecker():
                 print(f'{property} = {self._value_iteration(op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
             elif self.args.q_learning:
                 print(f'{property} = {self._q_learning(op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
+            elif self.args.deep_q_learning:
+                print(f'{property} = {self._deep_q_learning(op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
             else:
                 print("Error: No algorithm specified.")
                 quit()
@@ -220,6 +290,7 @@ class ModelChecker():
         print("Done in {0:.2f} seconds.".format(end_time - start_time))
     
     def explore(self, explored):
+        labels = [] # list of transition labels
         found = True # flag to indicate if new states were found
         t0 = timer() # timer to print progress
         while found:
@@ -233,6 +304,8 @@ class ModelChecker():
                 # for each state s in explored
                 for a in self.network.get_transitions(s):
                     # for each action a in A(s)
+                    if a.label not in labels:
+                        labels.append(a.label)
                     for delta in self.network.get_branches(s, a):
                         # for each target state s' in A(s)
                         _s = self.network.jump(s, a, delta)
@@ -241,7 +314,7 @@ class ModelChecker():
                             explored.append(_s)
                             found = True # new state found
         
-        return sorted(explored, key=lambda s: s.__str__()) # sort states by string representation
+        return sorted(explored, key=lambda s: s.__str__()), sorted(labels) # sort states by string representation and labels alphabetically
 
     def precompute_Smin0(self, expression: int):
         print('Pre-computing Smin0... ', end = '', flush = True)
@@ -378,13 +451,16 @@ class ModelChecker():
         
         return sorted(R, key=lambda s: s.__str__())
     
-    def opt(self, op: str, val, key=lambda x: x) -> float:
+    def opt_fn(self, op: str):
         if op.find('min') != -1:
-            return min(val, key=key)
+            return min
         elif op.find('max') != -1:
-            return max(val, key=key)
+            return max
         else:
             raise Exception('Unknown operator: ' + op)
+    
+    def opt(self, op: str, val, key=lambda x: x) -> float:
+        return self.opt_fn(op)(val, key=key)
 
 if __name__ == "__main__":
     ModelChecker(sys.argv)
