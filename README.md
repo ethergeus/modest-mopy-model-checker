@@ -241,7 +241,7 @@ $ modest modes modelModest/g7-dnd.modest --learn Qlearning --props "playerHPLeft
 Deep Q learning is implemented in `model-checker.py` and can be used by supplying the `--deep-q-learning` flag. The implementation is based on the [PyTorch DQN tutorial](https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html).
 
 TODO:
-- [✔️] Implement minimum and maximum probability queries
+- [x] Implement minimum and maximum probability queries
 - [ ] Implement target network (double DQN)
 
 ```bash
