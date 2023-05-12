@@ -11,17 +11,16 @@ from deepq import DQNetwork, Agent
 class ModelChecker():
     PROGRESS_INTERVAL = 2 # seconds
     MAX_RELATIVE_ERROR = 1e-6; # maximum relative error for value iteration
+    EPSILON_START = 1.0 # starting epsilon for deep Q-learning
+    EPSILON_MIN = 0.01 # ending epsilon for deep Q-learning
+    EPSILON_DECAY = 0.995 # epsilon decay for deep Q-learning
     Q_LEARNING_EXPLORATION = 0.1 # epsilon for Q-learning
     Q_LEARNING_RATE = 0.1 # alpha for Q-learning
     Q_LEARNING_DISCOUNT = 0.9 # gamma for Q-learning
     Q_LEARNING_RUNS = 5000 # number of runs for Q-learning
-
     MAX_MEM_SIZE = 100000 # maximum memory size for deep Q-learning
     BATCH_SIZE = 64 # batch size for deep Q-learning
     UPDATE_INTERVAL = 1000 # number of steps between target network updates for deep Q-learning
-    EPSILON_START = 1.0 # starting epsilon for deep Q-learning
-    EPSILON_MIN = 0.01 # ending epsilon for deep Q-learning
-    EPSILON_DECAY = 0.995 # epsilon decay for deep Q-learning
 
     def __init__(self, arguments) -> None:
         # Load the model
@@ -40,7 +39,9 @@ class ModelChecker():
         parser.add_argument('--relative-error', type=float, default=self.MAX_RELATIVE_ERROR, help=f'maximum relative error for value iteration (default: {self.MAX_RELATIVE_ERROR})')
         parser.add_argument('-k', '--max-iterations', type=int, default=0, help=f'maximum number of iterations for value iteration, takes precedence over relative error')
         parser.add_argument('--q-learning', action='store_true', help='use Q-learning to evaluate properties')
-        parser.add_argument('-e', '--epsilon', type=float, default=self.Q_LEARNING_EXPLORATION, help=f'epsilon (exploration probability) for Q-learning (default: {self.Q_LEARNING_EXPLORATION})')
+        parser.add_argument('--epsilon-start', type=float, default=self.EPSILON_START, help=f'initial epsilon (exploration probability) (default: {self.EPSILON_START})')
+        parser.add_argument('--epsilon-min', type=float, default=self.EPSILON_MIN, help=f'minimum epsilon (exploration probability) (default: {self.EPSILON_MIN})')
+        parser.add_argument('--epsilon-decay', type=float, default=self.EPSILON_DECAY, help=f'epsilon decay rate (default: {self.EPSILON_DECAY})')
         parser.add_argument('-a', '--alpha', type=float, default=self.Q_LEARNING_RATE, help=f'alpha (learning rate) for Q-learning (default: {self.Q_LEARNING_RATE})')
         parser.add_argument('-g', '--gamma', type=float, default=self.Q_LEARNING_DISCOUNT, help=f'gamma (discount factor) for Q-learning (default: {self.Q_LEARNING_DISCOUNT})')
 
@@ -49,11 +50,8 @@ class ModelChecker():
         parser.add_argument('--max-mem-size', type=int, default=self.MAX_MEM_SIZE, help=f'maximum size of the replay memory (default: {self.MAX_MEM_SIZE})')
         parser.add_argument('--batch-size', type=int, default=self.BATCH_SIZE, help=f'batch size for training (default: {self.BATCH_SIZE})')
         parser.add_argument('--update-interval', type=int, default=self.UPDATE_INTERVAL, help=f'number of steps between target network updates (default: {self.UPDATE_INTERVAL})')
-        parser.add_argument('--epsilon-start', type=float, default=self.EPSILON_START, help=f'initial epsilon (exploration probability) (default: {self.EPSILON_START})')
-        parser.add_argument('--epsilon-min', type=float, default=self.EPSILON_MIN, help=f'minimum epsilon (exploration probability) (default: {self.EPSILON_MIN})')
-        parser.add_argument('--epsilon-decay', type=float, default=self.EPSILON_DECAY, help=f'epsilon decay rate (default: {self.EPSILON_DECAY})')
 
-        parser.add_argument('--verbose', '-v', action='store_true', help='print progress information')
+        parser.add_argument('--verbose', '-v', action='store_true', help='print progress information when available')
 
         self.args = parser.parse_args()
 
@@ -146,7 +144,7 @@ class ModelChecker():
         k = self.args.max_iterations
         alpha = self.args.alpha
         gamma = self.args.gamma
-        epsilon = self.args.epsilon
+        epsilon = self.args.epsilon_start
 
         for _ in range(k if k != 0 else self.Q_LEARNING_RUNS):
             _s = SI # reset state to initial state
@@ -179,6 +177,9 @@ class ModelChecker():
                 # The only possible transition is to itself, i.e., s' = s (tau loop)
                 if _s == s and len(A) == 1 and len(D) == 1:
                     break # if term(s')
+            
+            # Decay epsilon
+            epsilon = max(self.args.epsilon_min, epsilon * self.args.epsilon_decay)
         
         return self.opt_fn(op)(Q[SI].values())
     
