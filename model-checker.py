@@ -5,7 +5,7 @@ from timeit import default_timer as timer
 import argparse
 import random
 
-from deepq import DQNetwork, Agent
+from deepq import DQAgent as Agent
 
 
 class ModelChecker():
@@ -195,7 +195,8 @@ class ModelChecker():
             self.states, self.transitions = self.explore([self.network.get_initial_state()])
             print(f' found a total of {len(self.states)} states and {len(self.transitions)} transitions.')
         
-        agent = Agent(gamma=self.args.gamma, epsilon=self.args.epsilon_start, alpha=self.args.alpha, input_dims=[len(self.states)], actions=self.transitions,
+        fc_dims = [len(self.states) * 2, len(self.states) * len(self.transitions), len(self.transitions) * 2]
+        agent = Agent(gamma=self.args.gamma, epsilon=self.args.epsilon_start, alpha=self.args.alpha, input_dims=[len(self.states)], fc_dims=fc_dims, actions=self.transitions,
                       max_mem_size=self.args.max_mem_size, batch_size=self.args.batch_size, eps_min=self.args.epsilon_min, eps_dec=self.args.epsilon_decay, opt=self.opt_fn(op))
 
         k = self.args.max_iterations

@@ -35,7 +35,7 @@ class DQNetwork(nn.Module):
         return actions
 
 
-class Agent():
+class DQAgent():
     def __init__(self, gamma, epsilon, alpha, input_dims, actions, batch_size=64, fc_dims=[256, 256], max_mem_size=100000, eps_min=.01, eps_dec = .995, opt=max):
         self.gamma = gamma # discount factor
         self.epsilon = epsilon # exploration rate
