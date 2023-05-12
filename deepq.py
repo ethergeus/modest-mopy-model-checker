@@ -8,7 +8,7 @@ import numpy as np
 class DQNetwork(nn.Module):
     def __init__(self, alpha, input_dims, fc_dims, action_space):
         super(DQNetwork, self).__init__()
-        
+
         # Action space, used to map actions to indices of output layer
         self.action_space = action_space # dict of {action: index}
         self.input_dims = input_dims # list of input dimensions
@@ -29,7 +29,7 @@ class DQNetwork(nn.Module):
     def forward(self, state):
         # Forward pass through network
         x = state.to(T.float32)
-        for layer in self.fc[:-2]:
+        for layer in self.fc[:-1]:
             x = F.relu(layer(x))
         actions = self.fc[-1](x)
         return actions
