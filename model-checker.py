@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/env python3
 import sys
 from importlib import util
 from timeit import default_timer as timer
@@ -13,14 +13,15 @@ class ModelChecker():
     MAX_RELATIVE_ERROR = 1e-6; # maximum relative error for value iteration
     EPSILON_START = 1.0 # starting epsilon for deep Q-learning
     EPSILON_MIN = 0.01 # ending epsilon for deep Q-learning
-    EPSILON_DECAY = 0.995 # epsilon decay for deep Q-learning
+    EPSILON_DECAY = 0.9999 # epsilon decay for deep Q-learning
     Q_LEARNING_EXPLORATION = 0.1 # epsilon for Q-learning
     Q_LEARNING_RATE = 0.1 # alpha for Q-learning
-    Q_LEARNING_DISCOUNT = 0.9 # gamma for Q-learning
+    Q_LEARNING_DISCOUNT = 1 # gamma for Q-learning
     Q_LEARNING_RUNS = 5000 # number of runs for Q-learning
     MAX_MEM_SIZE = 100000 # maximum memory size for deep Q-learning
     BATCH_SIZE = 64 # batch size for deep Q-learning
     UPDATE_INTERVAL = 1000 # number of steps between target network updates for deep Q-learning
+    TAU = 0.005 # tau for soft target network updates
 
     def __init__(self, arguments) -> None:
         # Load the model
@@ -50,6 +51,7 @@ class ModelChecker():
         parser.add_argument('--max-mem-size', type=int, default=self.MAX_MEM_SIZE, help=f'maximum size of the replay memory (default: {self.MAX_MEM_SIZE})')
         parser.add_argument('--batch-size', type=int, default=self.BATCH_SIZE, help=f'batch size for training (default: {self.BATCH_SIZE})')
         parser.add_argument('--update-interval', type=int, default=self.UPDATE_INTERVAL, help=f'number of steps between target network updates (default: {self.UPDATE_INTERVAL})')
+        parser.add_argument('--tau', type=float, default=self.TAU, help=f'tau for soft target network updates (default: {self.TAU})')
 
         parser.add_argument('--verbose', '-v', action='store_true', help='print progress information when available')
 
@@ -195,10 +197,12 @@ class ModelChecker():
             self.states, self.transitions = self.explore([self.network.get_initial_state()])
             print(f' found a total of {len(self.states)} states and {len(self.transitions)} transitions.')
         
-        fc_dims = [len(self.states) * 2, len(self.states) * len(self.transitions), len(self.transitions) * 2]
-        agent = Agent(gamma=self.args.gamma, epsilon=self.args.epsilon_start, alpha=self.args.alpha, input_dims=[len(self.states)], fc_dims=fc_dims, actions=self.transitions,
-                      max_mem_size=self.args.max_mem_size, batch_size=self.args.batch_size, eps_min=self.args.epsilon_min, eps_dec=self.args.epsilon_decay, opt=self.opt_fn(op))
-
+        fc_dims = [len(self.states), 128, 128]
+        label2index = {a: i for i, a in enumerate(self.transitions)}
+        index2label = {i: a for i, a in enumerate(self.transitions)}
+        agent = Agent(gamma=self.args.gamma, epsilon=self.args.epsilon_start, alpha=self.args.alpha, input_dims=[len(self.states)], num_actions=len(label2index), fc_dims=fc_dims,
+                      max_mem_size=self.args.max_mem_size, batch_size=self.args.batch_size, eps_min=self.args.epsilon_min, eps_dec=self.args.epsilon_decay, opt=self.opt_fn(op), verbose=self.args.verbose)
+        q_value = 0
         k = self.args.max_iterations
         t0 = timer()
         for run in range(k if k != 0 else self.Q_LEARNING_RUNS):
@@ -207,9 +211,6 @@ class ModelChecker():
             obs = [self.states.index(s) == i for i in range(len(self.states))]
 
             if self.args.verbose:
-                # Choose action greedily for initial state
-                _, q_value = agent.choose_action([self.states.index(SI) == i for i in range(len(self.states))], [a.label for a in self.network.get_transitions(SI)], force_greedy=True)
-
                 t1 = timer()
                 if t1 - t0 > self.PROGRESS_INTERVAL:
                     print(f'Progress: Q = {q_value:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}', end = '\r', flush = True)
@@ -217,9 +218,10 @@ class ModelChecker():
             
             while not done:
                 A = self.network.get_transitions(s) # possible actions
-                action, _ = agent.choose_action(obs, [a.label for a in A]) # choose action label from network
-                a = next(a for a in A if a.label == action) # get action from label
-                assert a in A
+                enabled_actions = [label2index[a.label] for a in A] # enabled actions
+                action, _ = agent.choose_action(obs, enabled_actions) # choose action label from network
+                a = next(a for a in A if a.label == index2label[action]) # get action from label
+                assert a in A # sanity check, chosen action should be in action space
                 D = self.network.get_branches(s, a) # possible transitions
                 delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
                 reward = [reward_exp]
@@ -231,11 +233,21 @@ class ModelChecker():
                 if _s == s and len(A) == 1 and len(D) == 1 or self.network.get_expression_value(_s, goal_exp):
                     done = True # if term(s')
                 
-                agent.store_transition(obs, action, reward[0], _obs, done) # store transition in replay buffer
+                agent.buffer.push_mdp_tensor(obs, action, reward[0], _obs, done) # store transition in replay buffer
+
                 s, obs = _s, _obs # update state and observation
                 agent.learn() # train agent
+
+                # Soft update of the target network's weights
+                # θ′ ← τ θ + (1 −τ )θ′
+                policy_net_state_dict = agent.policy_net.state_dict()
+                target_net_state_dict = agent.target_net.state_dict()
+                for key in policy_net_state_dict.keys():
+                    target_net_state_dict[key] = self.args.tau * policy_net_state_dict[key] + (1 - self.args.tau) * target_net_state_dict[key]
+                agent.target_net.load_state_dict(target_net_state_dict)
         
-        _, q_value = agent.choose_action([self.states.index(SI) == i for i in range(len(self.states))], [a.label for a in self.network.get_transitions(SI)], force_greedy=True)
+            _, q_value = agent.choose_action([self.states.index(SI) == i for i in range(len(self.states))], [label2index[a.label] for a in self.network.get_transitions(SI)], force_greedy=True)
+        
         return q_value
     
     def check_properties(self, properties = []) -> None:

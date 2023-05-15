@@ -3,14 +3,39 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
+from collections import namedtuple, deque
+import random
+
+
+Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state', 'done')) # transition tuple
+
+class ReplayBuffer(object):
+    def __init__(self, maxlen=100000) -> None:
+        self.buffer = deque([], maxlen=maxlen)
+    
+    def push(self, *args):
+        self.buffer.append(Transition(*args))
+    
+    def push_mdp_tensor(self, obs, action, reward, _obs, done):
+        obs = T.tensor(obs, dtype=T.float32).unsqueeze(0)
+        action = T.tensor([[action]], dtype=T.long)
+        reward = T.tensor([reward], dtype=T.float32)
+        _obs = T.tensor(_obs, dtype=T.float32).unsqueeze(0)
+        self.push(obs, action, reward, _obs, done)
+    
+    def sample(self, batch_size):
+        return random.sample(self.buffer, batch_size)
+    
+    def __len__(self):
+        return len(self.buffer)
 
 
 class DQNetwork(nn.Module):
-    def __init__(self, alpha, input_dims, fc_dims, action_space):
+    def __init__(self, input_dims, fc_dims, num_actions):
         super(DQNetwork, self).__init__()
 
         # Action space, used to map actions to indices of output layer
-        self.action_space = action_space # dict of {action: index}
+        self.num_actions = num_actions # number of actions
         self.input_dims = input_dims # list of input dimensions
         self.fc_dims = fc_dims # list of fully connected layer dimensions
 
@@ -19,89 +44,74 @@ class DQNetwork(nn.Module):
         for i in range(1, len(self.fc_dims)):
             # Add fully connected layers
             self.fc.append(nn.Linear(self.fc_dims[i-1], self.fc_dims[i]))
-        self.fc.append(nn.Linear(self.fc_dims[-1], len(action_space))) # output layer
-        parameters = nn.ModuleList(self.fc).parameters() # list of parameters for all layers
-        self.optimizer = optim.Adam(parameters, lr=alpha) # Adam optimizer
-        self.loss = nn.MSELoss() # Mean Squared Error Loss
-        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu') # GPU or CPU
-        self.to(self.device)
-
+        self.fc.append(nn.Linear(self.fc_dims[-1], num_actions)) # output layer
+    
     def forward(self, state):
         # Forward pass through network
-        x = state.to(T.float32)
+        x = state
         for layer in self.fc[:-1]:
-            x = F.relu(layer(x))
-        actions = self.fc[-1](x)
-        return actions
+            x = F.relu(layer(x)) # ReLU activation for all but last layer
+        return self.fc[-1](x) # return output of last layer (Q values for all actions)
 
 
 class DQAgent():
-    def __init__(self, gamma, epsilon, alpha, input_dims, actions, batch_size=64, fc_dims=[256, 256], max_mem_size=100000, eps_min=.01, eps_dec = .995, opt=max):
+    def __init__(self, gamma, epsilon, alpha, input_dims, num_actions, fc_dims=[256, 256], max_mem_size=100000, batch_size=64, eps_min=.01, eps_dec = .995, opt=max, verbose=False):
         self.gamma = gamma # discount factor
         self.epsilon = epsilon # exploration rate
         self.alpha = alpha # learning rate
         self.input_dims = input_dims # list of input dimensions
+        self.num_actions = num_actions # number of actions
         self.fc_dims = fc_dims # list of fully connected layer dimensions
-        self.batch_size = batch_size # batch size
         self.mem_size = max_mem_size # maximum memory size
+        self.batch_size = batch_size # batch size
         self.eps_min = eps_min # minimum exploration rate
         self.eps_dec = eps_dec # exploration rate decay
-        self.action_space = {a: i for i, a in enumerate(actions)} # dict of {action: index}
-        self.mem_cntr = 0 # memory counter
         self.opt = opt # function to determine what is considered optimal, i.e., max or min
         self.torch_opt = T.max if opt == max else T.min # torch equivalent of opt
+        self.torch_argopt = T.argmax if opt == max else T.argmin # torch equivalent of argopt
+        self.verbose = verbose # whether to print debug information
 
-        self.Q_eval = DQNetwork(self.alpha, action_space=self.action_space, input_dims=input_dims, fc_dims=fc_dims) # Q network
-        self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=bool) # memory of states
-        self._state_memory = np.zeros((self.mem_size, *input_dims), dtype=bool) # memory of next states
-        self.action_memory = np.zeros(self.mem_size, dtype=np.int32) # memory of actions
-        self.reward_memory = np.zeros(self.mem_size, dtype=np.float32) # memory of rewards
-        self.terminal_memory = np.zeros(self.mem_size, dtype=bool) # memory of terminal states
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu') # device to use for training
 
-    def store_transition(self, state, action, reward, _state, done):
-        index = self.mem_cntr % self.mem_size # index of memory to store transition
-        self.state_memory[index] = state # store state
-        self._state_memory[index] = _state # store next state
-        self.reward_memory[index] = reward # store reward
-        self.action_memory[index] = self.action_space[action] # store action
-        self.terminal_memory[index] = done # store terminal state
-        self.mem_cntr += 1 # increment memory counter
+        self.policy_net = DQNetwork(input_dims=input_dims, fc_dims=fc_dims, num_actions=num_actions).to(self.device) # policy network
+        self.target_net = DQNetwork(input_dims=input_dims, fc_dims=fc_dims, num_actions=num_actions).to(self.device) # target network
+        self.target_net.load_state_dict(self.policy_net.state_dict()) # copy policy network weights to target network
+        self.parameters = nn.ModuleList(self.policy_net.fc).parameters() # list of parameters for all layers
+        self.optimizer = optim.AdamW(self.parameters, lr=alpha, amsgrad=True) # AdamW optimizer
+        self.buffer = ReplayBuffer(max_mem_size) # replay buffer
+        self.loss = nn.SmoothL1Loss() # Huber loss
 
     def choose_action(self, observation, enabled_actions, force_greedy=False):
-        if force_greedy or np.random.uniform(0, 1) > self.epsilon:
+        if force_greedy or random.uniform(0, 1) > self.epsilon:
             # Choose action greedily (exploit)
-            state = T.tensor([observation]).to(self.Q_eval.device) # convert observation to tensor
-            actions = self.Q_eval.forward(state)[0] # get Q values for all actions
-            action = self.opt(enabled_actions, key=lambda a: actions[self.action_space[a]]) # choose optimal enabled action
-            q_value = actions[self.action_space[action]].item() # return Q value for chosen action
+            with T.no_grad():
+                state = T.tensor(observation, dtype=T.float32).to(self.device)
+                q_values = self.policy_net(state)[enabled_actions] # get Q values for all actions
+                action = self.torch_argopt(q_values).item() # choose action with highest Q value
+                return enabled_actions[action], q_values[action]
         else:
             # Choose action randomly (explore)
-            action = np.random.choice(enabled_actions) # choose random action
-            q_value = None # return no Q value for random action
-        return action, q_value
-
+            return np.random.choice(enabled_actions), None
+        
     def learn(self):
-        if self.mem_cntr < self.batch_size:
+        if len(self.buffer) < self.batch_size:
             return # don't learn until memory is full
-
-        self.Q_eval.optimizer.zero_grad() # zero gradients
-        max_mem = min(self.mem_cntr, self.mem_size) # maximum memory to sample from
-        batch = np.random.choice(max_mem, self.batch_size, replace=False) # sample batch from memory
-        batch_index = np.arange(self.batch_size, dtype=np.int32) # batch indices
-
-        state_batch = T.tensor(self.state_memory[batch]).to(self.Q_eval.device) # convert batch of states to tensor
-        _state_batch = T.tensor(self._state_memory[batch]).to(self.Q_eval.device) # convert batch of next states to tensor
-        reward_batch = T.tensor(self.reward_memory[batch]).to(self.Q_eval.device) # convert batch of rewards to tensor
-        terminal_batch = T.tensor(self.terminal_memory[batch]).to(self.Q_eval.device) # convert batch of terminal states to tensor
-        action_batch = self.action_memory[batch] # batch of actions
-
-        q_eval = self.Q_eval.forward(state_batch)[batch_index, action_batch] # get Q values for all actions
-        q_next = self.Q_eval.forward(_state_batch) # get Q values for all actions in next state
-        q_next[terminal_batch] = 0.0 # set next Q values of terminal states to 0
-        q_target = reward_batch + self.gamma * self.torch_opt(q_next, dim=1)[0] # calculate target Q values
-
-        loss = self.Q_eval.loss(q_target, q_eval).to(self.Q_eval.device) # calculate loss
+        
+        transitions = self.buffer.sample(self.batch_size) # sample batch from memory
+        batch = Transition(*zip(*transitions)) # convert batch of transitions to transition of batches
+        non_final_mask = T.tensor(tuple(map(lambda s: s is not None, batch.next_state)), device=self.device, dtype=T.bool) # mask of non-final states
+        non_final_next_states = T.cat([state for state in batch.next_state if state is not None]) # concatenate non-final next states
+        state_batch = T.cat(batch.state) # concatenate states
+        action_batch = T.cat(batch.action) # concatenate actions
+        reward_batch = T.cat(batch.reward) # concatenate rewards
+        state_action_values = self.policy_net(state_batch).gather(1, action_batch) # get Q values for all actions taken in batch
+        next_state_values = T.zeros(self.batch_size, device=self.device) # initialize next state values to 0
+        with T.no_grad():
+            next_state_values[non_final_mask] = self.torch_opt(self.target_net(non_final_next_states), 1)[0]
+        expected_state_action_values = (next_state_values * self.gamma) + reward_batch # calculate expected state action values
+        loss = self.loss(state_action_values, expected_state_action_values.unsqueeze(1)) # calculate loss
+        self.optimizer.zero_grad() # zero gradients
         loss.backward() # backpropagate loss
-        self.Q_eval.optimizer.step() # update weights
-
+        T.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
+        self.optimizer.step() # update parameters
         self.epsilon = self.epsilon * self.eps_dec if self.epsilon > self.eps_min else self.eps_min # decay exploration rate
