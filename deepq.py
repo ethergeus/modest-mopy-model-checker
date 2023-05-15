@@ -112,6 +112,5 @@ class DQAgent():
         loss = self.loss(state_action_values, expected_state_action_values.unsqueeze(1)) # calculate loss
         self.optimizer.zero_grad() # zero gradients
         loss.backward() # backpropagate loss
-        T.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step() # update parameters
         self.epsilon = self.epsilon * self.eps_dec if self.epsilon > self.eps_min else self.eps_min # decay exploration rate

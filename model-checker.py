@@ -197,10 +197,11 @@ class ModelChecker():
             self.states, self.transitions = self.explore([self.network.get_initial_state()])
             print(f' found a total of {len(self.states)} states and {len(self.transitions)} transitions.')
         
-        fc_dims = [len(self.states), 128, 128]
+        input_dims = [len(self.state2obs(SI))]
+        fc_dims = [64, 64]
         label2index = {a: i for i, a in enumerate(self.transitions)}
         index2label = {i: a for i, a in enumerate(self.transitions)}
-        agent = Agent(gamma=self.args.gamma, epsilon=self.args.epsilon_start, alpha=self.args.alpha, input_dims=[len(self.states)], num_actions=len(label2index), fc_dims=fc_dims,
+        agent = Agent(gamma=self.args.gamma, epsilon=self.args.epsilon_start, alpha=self.args.alpha, input_dims=input_dims, num_actions=len(label2index), fc_dims=fc_dims,
                       max_mem_size=self.args.max_mem_size, batch_size=self.args.batch_size, eps_min=self.args.epsilon_min, eps_dec=self.args.epsilon_decay, opt=self.opt_fn(op), verbose=self.args.verbose)
         q_value = 0
         k = self.args.max_iterations
@@ -208,7 +209,7 @@ class ModelChecker():
         for run in range(k if k != 0 else self.Q_LEARNING_RUNS):
             done = False # whether we have reached a terminal state
             s = SI # reset state to initial state
-            obs = [self.states.index(s) == i for i in range(len(self.states))]
+            obs = self.state2obs(s)
 
             if self.args.verbose:
                 t1 = timer()
@@ -226,7 +227,7 @@ class ModelChecker():
                 delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
                 reward = [reward_exp]
                 _s = self.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
-                _obs = [self.states.index(_s) == i for i in range(len(self.states))] # get observation from state
+                _obs = self.state2obs(_s) # get observation from state
 
                 # If we have reached a terminal state, break
                 # The only possible transition is to itself, i.e., s' = s (tau loop) or the goal expression is satisfied
@@ -246,7 +247,7 @@ class ModelChecker():
                     target_net_state_dict[key] = self.args.tau * policy_net_state_dict[key] + (1 - self.args.tau) * target_net_state_dict[key]
                 agent.target_net.load_state_dict(target_net_state_dict)
         
-            _, q_value = agent.choose_action([self.states.index(SI) == i for i in range(len(self.states))], [label2index[a.label] for a in self.network.get_transitions(SI)], force_greedy=True)
+            _, q_value = agent.choose_action(self.state2obs(SI), [label2index[a.label] for a in self.network.get_transitions(SI)], force_greedy=True)
         
         return q_value
     
@@ -475,6 +476,9 @@ class ModelChecker():
     
     def opt(self, op: str, val, key=lambda x: x) -> float:
         return self.opt_fn(op)(val, key=key)
+    
+    def state2obs(self, state):
+        return [state.get_variable_value(var) for var in range(len(self.network.variables))]
 
 if __name__ == "__main__":
     ModelChecker(sys.argv)
