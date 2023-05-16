@@ -4,6 +4,7 @@ from importlib import util
 from timeit import default_timer as timer
 import argparse
 import random
+import itertools
 
 from deepq import DQAgent as Agent
 
@@ -22,6 +23,9 @@ class ModelChecker():
     BATCH_SIZE = 64 # batch size for deep Q-learning
     UPDATE_INTERVAL = 1000 # number of steps between target network updates for deep Q-learning
     TAU = 0.005 # tau for soft target network updates
+    FC_DIMS = [256, 256] # fully connected layer dimensions for deep Q-learning
+    ONEHOT_ALL_VARS = False # whether to use one-hot encoding for states
+    ONEHOT_VARS = ['state'] # variables to use one-hot encoding for
 
     def __init__(self, arguments) -> None:
         # Load the model
@@ -52,6 +56,9 @@ class ModelChecker():
         parser.add_argument('--batch-size', type=int, default=self.BATCH_SIZE, help=f'batch size for training (default: {self.BATCH_SIZE})')
         parser.add_argument('--update-interval', type=int, default=self.UPDATE_INTERVAL, help=f'number of steps between target network updates (default: {self.UPDATE_INTERVAL})')
         parser.add_argument('--tau', type=float, default=self.TAU, help=f'tau for soft target network updates (default: {self.TAU})')
+        parser.add_argument('--fc-dims', type=int, nargs='+', default=self.FC_DIMS, help=f'dimensions of the fully connected layers (default: {self.FC_DIMS})')
+        parser.add_argument('--onehot-all-vars', action='store_true', help='use one-hot encoding for all variables')
+        parser.add_argument('--onehot-vars', type=str, nargs='+', default=self.ONEHOT_VARS, help=f'variables to use one-hot encoding for (default: {self.ONEHOT_VARS})')
 
         parser.add_argument('--verbose', '-v', action='store_true', help='print progress information when available')
 
@@ -74,7 +81,7 @@ class ModelChecker():
         # Explore state space using breadth-first search
         if len(self.states) == 0:
             print('Exploring the state space...', end = '', flush = True)
-            self.states, self.transitions = self.explore([self.network.get_initial_state()])
+            self.states = self.explore([self.network.get_initial_state()])
             print(f' found a total of {len(self.states)} states.')
         
         S = self.states # all states
@@ -191,17 +198,9 @@ class ModelChecker():
         
         SI = self.network.get_initial_state() # initial state
         
-        # Explore state space using breadth-first search
-        if len(self.transitions) == 0 or len(self.states) == 0:
-            print('Exploring the state space...', end = '', flush = True)
-            self.states, self.transitions = self.explore([self.network.get_initial_state()])
-            print(f' found a total of {len(self.states)} states and {len(self.transitions)} transitions.')
-        
         input_dims = [len(self.state2obs(SI))]
-        fc_dims = [256, 256]
-        label2index = {a: i for i, a in enumerate(self.transitions)}
-        index2label = {i: a for i, a in enumerate(self.transitions)}
-        agent = Agent(gamma=self.args.gamma, epsilon=self.args.epsilon_start, alpha=self.args.alpha, input_dims=input_dims, num_actions=len(label2index), fc_dims=fc_dims,
+        num_actions = max(*self.network.components, key=lambda c: c.transition_counts[0]).transition_counts[0]
+        agent = Agent(gamma=self.args.gamma, epsilon=self.args.epsilon_start, alpha=self.args.alpha, input_dims=input_dims, num_actions=num_actions, fc_dims=self.args.fc_dims,
                       max_mem_size=self.args.max_mem_size, batch_size=self.args.batch_size, eps_min=self.args.epsilon_min, eps_dec=self.args.epsilon_decay, opt=self.opt_fn(op), verbose=self.args.verbose)
         q_value, loss = 0, 0
         k = self.args.max_iterations
@@ -219,9 +218,9 @@ class ModelChecker():
             while not self.network.get_expression_value(_s, goal_exp):
                 s, obs = _s, _obs # update state and observation
                 A = self.network.get_transitions(s) # possible actions
-                enabled_actions = [label2index[a.label] for a in A] # enabled actions
-                action, _ = agent.choose_action(obs, enabled_actions) # choose action label from network
-                a = next(a for a in A if a.label == index2label[action]) # get action from label
+                enabled_actions = range(len(A)) # enabled actions
+                action, _ = agent.choose_action(obs, enabled_actions) # choose action index from network
+                a = A[action] # get action from index
                 assert a in A # sanity check, chosen action should be in action space
                 D = self.network.get_branches(s, a) # possible transitions
                 delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
@@ -229,7 +228,7 @@ class ModelChecker():
                 _s = self.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
                 _obs = self.state2obs(_s) # get observation from state
                 
-                agent.buffer.push_mdp_tensor(obs, action, reward[0], _obs) # store transition in replay buffer
+                agent.buffer.push_mdp_tensor(obs, action, reward[0], _obs, enabled_actions) # store transition in replay buffer
 
                 loss = agent.learn() # train agent
 
@@ -246,7 +245,7 @@ class ModelChecker():
                 if _s == s and len(A) == 1 and len(D) == 1:
                     break # if term(s')
         
-            _, q_value = agent.choose_action(self.state2obs(SI), [label2index[a.label] for a in self.network.get_transitions(SI)], force_greedy=True)
+            _, q_value = agent.choose_action(self.state2obs(SI), range(len(self.network.get_transitions(SI))), force_greedy=True)
         
         if self.args.verbose:
             print(f'Finished: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}')
@@ -330,7 +329,7 @@ class ModelChecker():
                             explored.append(_s)
                             found = True # new state found
         
-        return sorted(explored, key=lambda s: s.__str__()), sorted(labels) # sort states by string representation and labels alphabetically
+        return sorted(explored, key=lambda s: s.__str__()) # sort states by string representation
 
     def precompute_Smin0(self, expression: int):
         print('Pre-computing Smin0... ', end = '', flush = True)
@@ -479,7 +478,13 @@ class ModelChecker():
         return self.opt_fn(op)(val, key=key)
     
     def state2obs(self, state):
-        return [state.get_variable_value(var) for var in range(len(self.network.variables))]
+        return list(itertools.chain(
+            *[self.onehot(state, var) if self.args.onehot_all_vars or self.network.variables[var].name in self.args.onehot_vars
+              else [state.get_variable_value(var)] for var in range(len(self.network.variables))]))
+    
+    def onehot(self, state, var):
+        v = self.network.variables[var]
+        return [state.get_variable_value(var) == i for i in range(v.minValue, v.maxValue + 1)]
 
 if __name__ == "__main__":
     ModelChecker(sys.argv)

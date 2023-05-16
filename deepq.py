@@ -7,7 +7,7 @@ from collections import namedtuple, deque
 import random
 
 
-Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state')) # transition tuple
+Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state', 'enabled_actions')) # transition tuple
 
 class ReplayBuffer(object):
     def __init__(self, maxlen=100000) -> None:
@@ -16,12 +16,13 @@ class ReplayBuffer(object):
     def push(self, *args):
         self.buffer.append(Transition(*args))
     
-    def push_mdp_tensor(self, obs, action, reward, _obs):
+    def push_mdp_tensor(self, obs, action, reward, _obs, enabled_actions):
         obs = T.tensor(obs, dtype=T.float32).unsqueeze(0)
         action = T.tensor([[action]], dtype=T.long)
         reward = T.tensor([reward], dtype=T.float32)
         _obs = T.tensor(_obs, dtype=T.float32).unsqueeze(0)
-        self.push(obs, action, reward, _obs)
+        enabled_actions = enabled_actions
+        self.push(obs, action, reward, _obs, enabled_actions)
     
     def sample(self, batch_size):
         return random.sample(self.buffer, batch_size)
@@ -105,7 +106,7 @@ class DQAgent():
         next_state_batch = T.cat(batch.next_state) # concatenate next states (n x state_dim)
         state_action_values = self.policy_net(state_batch).gather(1, action_batch) # get Q values for all actions taken in batch (n x 1)
         with T.no_grad():
-            next_state_values = self.torch_opt(self.target_net(next_state_batch), 1)[0] # get Q values for all actions in next state (n x 1)
+            next_state_values = self.torch_opt(self.target_net(next_state_batch), 1)[0] # get optimal Q values of all actions in next state (n x 1)
         expected_state_action_values = (next_state_values * self.gamma) + reward_batch # calculate expected state action values
         loss = self.loss(state_action_values, expected_state_action_values.unsqueeze(1)) # calculate loss
         self.optimizer.zero_grad() # zero gradients
