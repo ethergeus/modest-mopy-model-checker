@@ -13,7 +13,7 @@ class ModelChecker():
     MAX_RELATIVE_ERROR = 1e-6; # maximum relative error for value iteration
     EPSILON_START = 1.0 # starting epsilon for deep Q-learning
     EPSILON_MIN = 0.01 # ending epsilon for deep Q-learning
-    EPSILON_DECAY = 0.9999 # epsilon decay for deep Q-learning
+    EPSILON_DECAY = 0.995 # epsilon decay for deep Q-learning
     Q_LEARNING_EXPLORATION = 0.1 # epsilon for Q-learning
     Q_LEARNING_RATE = 0.1 # alpha for Q-learning
     Q_LEARNING_DISCOUNT = 1 # gamma for Q-learning
@@ -198,26 +198,26 @@ class ModelChecker():
             print(f' found a total of {len(self.states)} states and {len(self.transitions)} transitions.')
         
         input_dims = [len(self.state2obs(SI))]
-        fc_dims = [64, 64]
+        fc_dims = [256, 256]
         label2index = {a: i for i, a in enumerate(self.transitions)}
         index2label = {i: a for i, a in enumerate(self.transitions)}
         agent = Agent(gamma=self.args.gamma, epsilon=self.args.epsilon_start, alpha=self.args.alpha, input_dims=input_dims, num_actions=len(label2index), fc_dims=fc_dims,
                       max_mem_size=self.args.max_mem_size, batch_size=self.args.batch_size, eps_min=self.args.epsilon_min, eps_dec=self.args.epsilon_decay, opt=self.opt_fn(op), verbose=self.args.verbose)
-        q_value = 0
+        q_value, loss = 0, 0
         k = self.args.max_iterations
         t0 = timer()
         for run in range(k if k != 0 else self.Q_LEARNING_RUNS):
-            done = False # whether we have reached a terminal state
-            s = SI # reset state to initial state
-            obs = self.state2obs(s)
+            _s = SI # reset state to initial state
+            _obs = self.state2obs(_s) # observation of initial state
 
             if self.args.verbose:
                 t1 = timer()
                 if t1 - t0 > self.PROGRESS_INTERVAL:
-                    print(f'Progress: Q = {q_value:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}', end = '\r', flush = True)
+                    print(f'Progress: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}', end = '\r', flush = True)
                     t0 = t1
             
-            while not done:
+            while not self.network.get_expression_value(_s, goal_exp):
+                s, obs = _s, _obs # update state and observation
                 A = self.network.get_transitions(s) # possible actions
                 enabled_actions = [label2index[a.label] for a in A] # enabled actions
                 action, _ = agent.choose_action(obs, enabled_actions) # choose action label from network
@@ -228,16 +228,10 @@ class ModelChecker():
                 reward = [reward_exp]
                 _s = self.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
                 _obs = self.state2obs(_s) # get observation from state
-
-                # If we have reached a terminal state, break
-                # The only possible transition is to itself, i.e., s' = s (tau loop) or the goal expression is satisfied
-                if _s == s and len(A) == 1 and len(D) == 1 or self.network.get_expression_value(_s, goal_exp):
-                    done = True # if term(s')
                 
-                agent.buffer.push_mdp_tensor(obs, action, reward[0], _obs, done) # store transition in replay buffer
+                agent.buffer.push_mdp_tensor(obs, action, reward[0], _obs) # store transition in replay buffer
 
-                s, obs = _s, _obs # update state and observation
-                agent.learn() # train agent
+                loss = agent.learn() # train agent
 
                 # Soft update of the target network's weights
                 # θ′ ← τ θ + (1 −τ )θ′
@@ -246,9 +240,16 @@ class ModelChecker():
                 for key in policy_net_state_dict.keys():
                     target_net_state_dict[key] = self.args.tau * policy_net_state_dict[key] + (1 - self.args.tau) * target_net_state_dict[key]
                 agent.target_net.load_state_dict(target_net_state_dict)
+
+                # If we have reached a terminal state, break
+                # The only possible transition is to itself, i.e., s' = s (tau loop)
+                if _s == s and len(A) == 1 and len(D) == 1:
+                    break # if term(s')
         
             _, q_value = agent.choose_action(self.state2obs(SI), [label2index[a.label] for a in self.network.get_transitions(SI)], force_greedy=True)
         
+        if self.args.verbose:
+            print(f'Finished: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}')
         return q_value
     
     def check_properties(self, properties = []) -> None:
