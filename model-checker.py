@@ -74,7 +74,7 @@ class ModelChecker():
         # Explore state space using breadth-first search
         if len(self.states) == 0:
             print('Exploring the state space...', end = '', flush = True)
-            self.states = self.explore([self.network.get_initial_state()])
+            self.states, self.transitions = self.explore([self.network.get_initial_state()])
             print(f' found a total of {len(self.states)} states.')
         
         S = self.states # all states
