@@ -24,8 +24,8 @@ class ModelChecker():
     UPDATE_INTERVAL = 1000 # number of steps between target network updates for deep Q-learning
     TAU = 0.005 # tau for soft target network updates
     FC_DIMS = [256, 256] # fully connected layer dimensions for deep Q-learning
-    ONEHOT_ALL_VARS = False # whether to use one-hot encoding for states
-    ONEHOT_VARS = ['state'] # variables to use one-hot encoding for
+    ONEHOT_ALL = False # whether to use one-hot encoding for states
+    ONEHOT = ['state'] # variables to use one-hot encoding for
 
     def __init__(self, arguments) -> None:
         # Load the model
@@ -57,8 +57,8 @@ class ModelChecker():
         parser.add_argument('--update-interval', type=int, default=self.UPDATE_INTERVAL, help=f'number of steps between target network updates (default: {self.UPDATE_INTERVAL})')
         parser.add_argument('--tau', type=float, default=self.TAU, help=f'tau for soft target network updates (default: {self.TAU})')
         parser.add_argument('--fc-dims', type=int, nargs='+', default=self.FC_DIMS, help=f'dimensions of the fully connected layers (default: {self.FC_DIMS})')
-        parser.add_argument('--onehot-all-vars', action='store_true', help='use one-hot encoding for all variables')
-        parser.add_argument('--onehot-vars', type=str, nargs='+', default=self.ONEHOT_VARS, help=f'variables to use one-hot encoding for (default: {self.ONEHOT_VARS})')
+        parser.add_argument('--onehot-all', action='store_true', help='use one-hot encoding for all variables')
+        parser.add_argument('--onehot', type=str, nargs='+', default=self.ONEHOT, help=f'variables to use one-hot encoding for (default: {self.ONEHOT})')
 
         parser.add_argument('--verbose', '-v', action='store_true', help='print progress information when available')
 
@@ -474,7 +474,7 @@ class ModelChecker():
     
     def state2obs(self, state):
         return list(itertools.chain(
-            *[self.onehot(state, var) if self.args.onehot_all_vars or self.network.variables[var].name in self.args.onehot_vars
+            *[self.onehot(state, var) if self.args.onehot_all or self.network.variables[var].name in self.args.onehot
               else [state.get_variable_value(var)] for var in range(len(self.network.variables))]))
     
     def onehot(self, state, var):
