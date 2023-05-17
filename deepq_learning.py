@@ -76,6 +76,8 @@ class DQAgent():
 
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu') # device to use for training
 
+        if self.verbose:
+            print(f'Creating policy and target networks with input dimensions {self.input_dims}, fully connected layer dimensions {self.fc_dims}, and {self.num_actions} actions as output layer')
         self.policy_net = DQNetwork(input_dims=input_dims, fc_dims=fc_dims, num_actions=num_actions).to(self.device) # policy network
         self.target_net = DQNetwork(input_dims=input_dims, fc_dims=fc_dims, num_actions=num_actions).to(self.device) # target network
         self.target_net.load_state_dict(self.policy_net.state_dict()) # copy policy network weights to target network
@@ -106,9 +108,13 @@ class DQAgent():
         action_batch = T.cat(batch.action) # concatenate actions (n x 1)
         reward_batch = T.cat(batch.reward) # concatenate rewards (n x 1)
         next_state_batch = T.cat(batch.next_state) # concatenate next states (n x state_dim)
+        disabled_actions_mask = T.tensor(tuple(map(lambda a: tuple([i not in a for i in range(self.num_actions)]), batch.enabled_actions)), dtype=T.bool).to(self.device) # mask of disabled actions (n x num_actions)
         state_action_values = self.policy_net(state_batch).gather(1, action_batch) # get Q values for all actions taken in batch (n x 1)
         with T.no_grad():
-            next_state_values = self.torch_opt(self.target_net(next_state_batch), 1)[0] # get optimal Q values of all actions in next state (n x 1)
+            target_eval = self.target_net(next_state_batch) # get Q values for all actions in next state (n x num_actions)
+            # Filter out disabled actions
+            target_eval[disabled_actions_mask] = -np.inf if self.opt == max else np.inf # set disabled actions to -inf if max opt, inf if min opt
+            next_state_values = self.torch_opt(target_eval, 1)[0] # get optimal Q values of all actions in next state (n x 1)
         expected_state_action_values = (next_state_values * self.gamma) + reward_batch # calculate expected state action values
         loss = self.loss(state_action_values, expected_state_action_values.unsqueeze(1)) # calculate loss
         self.optimizer.zero_grad() # zero gradients
@@ -122,7 +128,7 @@ class DQAgent():
         # Soft update target network parameters
         # θ′ ← τ θ + (1 −τ )θ′
         for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
-            target_param.data.copy_(tau*policy_param.data + (1.0-tau)*target_param.data)
+            target_param.data.copy_(tau * policy_param.data + (1 - tau) * target_param.data)
 
 def _deep_q_learning(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
     if not is_reward:
@@ -130,7 +136,7 @@ def _deep_q_learning(model_checker, op: str, is_prob: bool, is_reach: bool, is_r
     
     SI = model_checker.network.get_initial_state() # initial state
     
-    input_dims = [len(utils.state2obs(model_checker.network, SI))]
+    input_dims = [len(utils.state2obs(model_checker.network, SI, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot))]
     components = model_checker.network.components
     num_actions = max(*components, key=lambda c: c.transition_counts[0]).transition_counts[0] if len(components) > 1 else components[0].transition_counts[0]
     agent = DQAgent(gamma=model_checker.args.gamma,
@@ -150,7 +156,7 @@ def _deep_q_learning(model_checker, op: str, is_prob: bool, is_reach: bool, is_r
     t0 = timer()
     for run in range(k if k != 0 else model_checker.Q_LEARNING_RUNS):
         _s = SI # reset state to initial state
-        _obs = utils.state2obs(model_checker.network, _s) # observation of initial state
+        _obs = utils.state2obs(model_checker.network, _s, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot) # observation of initial state
 
         if model_checker.args.verbose:
             t1 = timer()
@@ -169,7 +175,7 @@ def _deep_q_learning(model_checker, op: str, is_prob: bool, is_reach: bool, is_r
             delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
             reward = [reward_exp]
             _s = model_checker.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
-            _obs = utils.state2obs(model_checker.network, _s) # get observation from state
+            _obs = utils.state2obs(model_checker.network, _s, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot) # get observation from state
             
             agent.buffer.push_mdp_tensor(obs, action, reward[0], _obs, enabled_actions) # store transition in replay buffer
 
@@ -183,7 +189,7 @@ def _deep_q_learning(model_checker, op: str, is_prob: bool, is_reach: bool, is_r
             if _s == s and len(A) == 1 and len(D) == 1:
                 break # if term(s')
     
-        _, q_value = agent.choose_action(utils.state2obs(model_checker.network, SI), range(len(model_checker.network.get_transitions(SI))), force_greedy=True)
+        _, q_value = agent.choose_action(utils.state2obs(model_checker.network, SI, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot), range(len(model_checker.network.get_transitions(SI))), force_greedy=True)
     
     if model_checker.args.verbose:
         print(f'Finished: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}')

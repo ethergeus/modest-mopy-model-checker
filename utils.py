@@ -13,7 +13,7 @@ def opt(op: str, val, key=lambda x: x) -> float:
 
 def state2obs(network, state, onehot_all_vars=False, onehot_vars=[]):
     return list(itertools.chain(
-        *[onehot(state, var) if onehot_all_vars or network.variables[var].name in onehot_vars
+        *[onehot(network, state, var) if onehot_all_vars or network.variables[var].name in onehot_vars
             else [state.get_variable_value(var)] for var in range(len(network.variables))]))
 
 def onehot(network, state, var):
