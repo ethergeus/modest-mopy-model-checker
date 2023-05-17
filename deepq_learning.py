@@ -23,7 +23,7 @@ class ReplayBuffer(object):
         action = T.tensor([[action]], dtype=T.long)
         reward = T.tensor([reward], dtype=T.float32)
         _obs = T.tensor(_obs, dtype=T.float32).unsqueeze(0)
-        enabled_actions = enabled_actions
+        enabled_actions = T.tensor(enabled_actions, dtype=T.float32)
         self.push(obs, action, reward, _obs, enabled_actions)
     
     def sample(self, batch_size):
@@ -136,9 +136,12 @@ def _deep_q_learning(model_checker, op: str, is_prob: bool, is_reach: bool, is_r
     
     SI = model_checker.network.get_initial_state() # initial state
     
-    input_dims = [len(utils.state2obs(model_checker.network, SI, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot))]
-    components = model_checker.network.components
-    num_actions = max(*components, key=lambda c: c.transition_counts[0]).transition_counts[0] if len(components) > 1 else components[0].transition_counts[0]
+    obs = list(utils.state2obs(model_checker.network, SI, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot))
+    input_dims = [len(obs)]
+    components = model_checker.network.components # automaton components
+    num_actions = max(*components, key=lambda c: c.transition_counts[0]).transition_counts[0] if len(components) > 1 else components[0].transition_counts[0] # number of actions is the maximum number of transitions in any component
+    
+    # Deep Q-learning agent
     agent = DQAgent(gamma=model_checker.args.gamma,
                     epsilon=model_checker.args.epsilon_start,
                     alpha=model_checker.args.alpha,
@@ -151,12 +154,16 @@ def _deep_q_learning(model_checker, op: str, is_prob: bool, is_reach: bool, is_r
                     eps_dec=model_checker.args.epsilon_decay,
                     opt=utils._opt(op),
                     verbose=model_checker.args.verbose)
-    q_value, loss = 0, 0
-    k = model_checker.args.max_iterations
+    
+    if model_checker.args.verbose:
+        print(f'One-hot variables: {True if model_checker.args.onehot_all else model_checker.args.onehot}')
+    
+    q_value, loss = 0, 0 # Q value and loss
+    k = model_checker.args.max_iterations # maximum number of iterations
     t0 = timer()
     for run in range(k if k != 0 else model_checker.Q_LEARNING_RUNS):
         _s = SI # reset state to initial state
-        _obs = utils.state2obs(model_checker.network, _s, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot) # observation of initial state
+        _obs = list(utils.state2obs(model_checker.network, _s, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot)) # observation of initial state
 
         if model_checker.args.verbose:
             t1 = timer()
@@ -167,15 +174,15 @@ def _deep_q_learning(model_checker, op: str, is_prob: bool, is_reach: bool, is_r
         while not model_checker.network.get_expression_value(_s, goal_exp):
             s, obs = _s, _obs # update state and observation
             A = model_checker.network.get_transitions(s) # possible actions
-            enabled_actions = range(len(A)) # enabled actions
-            action, _ = agent.choose_action(obs, enabled_actions) # choose action index from network
-            a = A[action] # get action from index
+            enabled_actions = [a.transitions[0] for a in A] # enabled actions
+            action, _ = agent.choose_action(obs, enabled_actions) # choose action from network
+            a = next(a for a in A if a.transitions[0] == action) # get action from index
             assert a in A # sanity check, chosen action should be in action space
             D = model_checker.network.get_branches(s, a) # possible transitions
             delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
             reward = [reward_exp]
             _s = model_checker.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
-            _obs = utils.state2obs(model_checker.network, _s, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot) # get observation from state
+            _obs = list(utils.state2obs(model_checker.network, _s, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot)) # get observation from state
             
             agent.buffer.push_mdp_tensor(obs, action, reward[0], _obs, enabled_actions) # store transition in replay buffer
 
@@ -189,7 +196,8 @@ def _deep_q_learning(model_checker, op: str, is_prob: bool, is_reach: bool, is_r
             if _s == s and len(A) == 1 and len(D) == 1:
                 break # if term(s')
     
-        _, q_value = agent.choose_action(utils.state2obs(model_checker.network, SI, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot), range(len(model_checker.network.get_transitions(SI))), force_greedy=True)
+        enabled_actions = [a.transitions[0] for a in A] # enabled actions in initial state
+        _, q_value = agent.choose_action(list(utils.state2obs(model_checker.network, SI, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot)), enabled_actions, force_greedy=True)
     
     if model_checker.args.verbose:
         print(f'Finished: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}')

@@ -12,11 +12,18 @@ def opt(op: str, val, key=lambda x: x) -> float:
     return _opt(op)(val, key=key)
 
 def state2obs(network, state, onehot_all_vars=False, onehot_vars=[]):
-    return list(itertools.chain(
-        *[onehot(network, state, var) if onehot_all_vars or network.variables[var].name in onehot_vars
-            else [state.get_variable_value(var)] for var in range(len(network.variables))]))
+    # Converts a state to an observation vector
+    # If onehot_all_vars is True, then all variables are converted to one-hot vectors
+    # If onehot_all_vars is False, then only the variables in onehot_vars are converted to one-hot vectors
+    for var in range(len(network.variables)):
+        if onehot_all_vars or network.variables[var].name in onehot_vars:
+            yield from onehot(network, state, var)
+        else:
+            yield state.get_variable_value(var)
 
 def onehot(network, state, var):
+    # Converts a variable value to a one-hot vector
+    # I.e. if the variable has 3 possible values, and the current value is 1, then the one-hot vector is [0, 1, 0]
     v = network.variables[var]
     return [state.get_variable_value(var) == i for i in range(v.minValue, v.maxValue + 1)]
 

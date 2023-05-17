@@ -9,8 +9,8 @@ class ModelChecker():
     PROGRESS_INTERVAL = 2 # seconds
     MAX_RELATIVE_ERROR = 1e-6; # maximum relative error for value iteration
     EPSILON_START = 1.0 # starting epsilon for deep Q-learning
-    EPSILON_MIN = 0.01 # ending epsilon for deep Q-learning
-    EPSILON_DECAY = 0.995 # epsilon decay for deep Q-learning
+    EPSILON_MIN = 0.1 # ending epsilon for deep Q-learning
+    EPSILON_DECAY = 0.9995 # epsilon decay for deep Q-learning
     Q_LEARNING_EXPLORATION = 0.1 # epsilon for Q-learning
     Q_LEARNING_RATE = 0.1 # alpha for Q-learning
     Q_LEARNING_DISCOUNT = 1 # gamma for Q-learning
