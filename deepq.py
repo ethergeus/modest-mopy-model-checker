@@ -115,3 +115,9 @@ class DQAgent():
         self.epsilon = self.epsilon * self.eps_dec if self.epsilon > self.eps_min else self.eps_min # decay exploration rate
 
         return loss.item() # return loss
+    
+    def soft_update(self, tau):
+        # Soft update target network parameters
+        # θ′ ← τ θ + (1 −τ )θ′
+        for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
+            target_param.data.copy_(tau*policy_param.data + (1.0-tau)*target_param.data)

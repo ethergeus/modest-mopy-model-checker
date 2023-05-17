@@ -233,12 +233,7 @@ class ModelChecker():
                 loss = agent.learn() # train agent
 
                 # Soft update of the target network's weights
-                # θ′ ← τ θ + (1 −τ )θ′
-                policy_net_state_dict = agent.policy_net.state_dict()
-                target_net_state_dict = agent.target_net.state_dict()
-                for key in policy_net_state_dict.keys():
-                    target_net_state_dict[key] = self.args.tau * policy_net_state_dict[key] + (1 - self.args.tau) * target_net_state_dict[key]
-                agent.target_net.load_state_dict(target_net_state_dict)
+                agent.soft_update(self.args.tau)
 
                 # If we have reached a terminal state, break
                 # The only possible transition is to itself, i.e., s' = s (tau loop)
