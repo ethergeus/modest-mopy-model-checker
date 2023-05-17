@@ -57,14 +57,14 @@ class ReplayBuffer(object):
         return len(self.buffer)
 
 class DQNetwork(nn.Module):
-    def __init__(self, input_dims, fc_dims, num_actions, activation=nn.Sigmoid()):
+    def __init__(self, input_dims, fc_dims, num_actions):
         super(DQNetwork, self).__init__()
 
         # Action space, used to map actions to indices of output layer
         self.num_actions = num_actions # number of actions
         self.input_dims = input_dims # list of input dimensions
         self.fc_dims = fc_dims # list of fully connected layer dimensions
-        self.activation = activation # activation function for fully connected layers
+        self.activation = nn.Sigmoid() # activation function for fully connected layers
 
         # Define layers
         self.fc = [nn.Linear(*self.input_dims, self.fc_dims[0])] # first fully connected layer
@@ -122,7 +122,7 @@ class DQAgent():
         self.target_net = DQNetwork(input_dims=input_dims, fc_dims=fc_dims, num_actions=num_actions).to(self.device) # target network
         self.target_net.load_state_dict(self.policy_net.state_dict()) # copy policy network weights to target network
         self.parameters = nn.ModuleList(self.policy_net.fc).parameters() # list of parameters for all layers
-        self.optimizer = optim.Adam(self.parameters, lr=alpha) # Adam optimizer
+        self.optimizer = optim.SGD(self.parameters, lr=alpha) # Adam optimizer
         self.buffer = ReplayBuffer(max_mem_size) # replay buffer
         self.loss = nn.SmoothL1Loss() # Huber loss
 
