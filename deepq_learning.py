@@ -6,10 +6,34 @@ import numpy as np
 from collections import namedtuple, deque
 import random
 from timeit import default_timer as timer
+import matplotlib.pyplot as plt
 
 import utils
 
 Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state', 'enabled_actions')) # transition tuple
+
+class Results(object):
+    def __init__(self, maxlen=100000) -> None:
+        self.q_value = deque([], maxlen=maxlen)
+        self.loss = deque([], maxlen=maxlen)
+    
+    def push(self, q_values, loss):
+        self.q_value.append(q_values)
+        self.loss.append(loss)
+    
+    def plot(self):
+        plt.figure()
+        plt.title('Q-values over time')
+        plt.xlabel('Iterations')
+        plt.ylabel('Q-value')
+        plt.plot(self.q_value, marker='.', linestyle='')
+        plt.show()
+        plt.figure()
+        plt.title('Loss over time')
+        plt.xlabel('Iterations')
+        plt.ylabel('Loss')
+        plt.plot(self.loss, marker='.', linestyle='')
+        plt.show()
 
 class ReplayBuffer(object):
     def __init__(self, maxlen=100000) -> None:
@@ -32,15 +56,15 @@ class ReplayBuffer(object):
     def __len__(self):
         return len(self.buffer)
 
-
 class DQNetwork(nn.Module):
-    def __init__(self, input_dims, fc_dims, num_actions):
+    def __init__(self, input_dims, fc_dims, num_actions, activation=nn.Sigmoid()):
         super(DQNetwork, self).__init__()
 
         # Action space, used to map actions to indices of output layer
         self.num_actions = num_actions # number of actions
         self.input_dims = input_dims # list of input dimensions
         self.fc_dims = fc_dims # list of fully connected layer dimensions
+        self.activation = activation # activation function for fully connected layers
 
         # Define layers
         self.fc = [nn.Linear(*self.input_dims, self.fc_dims[0])] # first fully connected layer
@@ -53,12 +77,22 @@ class DQNetwork(nn.Module):
         # Forward pass through network
         x = state
         for layer in self.fc[:-1]:
-            x = F.relu(layer(x)) # ReLU activation for all but last layer
+            x = self.activation(layer(x)) # pass through fully connected layers
         return self.fc[-1](x) # return output of last layer (Q values for all actions)
 
 
 class DQAgent():
-    def __init__(self, gamma, epsilon, alpha, input_dims, num_actions, fc_dims=[256, 256], max_mem_size=100000, batch_size=64, eps_min=.01, eps_dec = .995, opt=max, verbose=False):
+    PUNISHMENT = -1e6 # punishment for invalid actions
+
+    def __init__(self, gamma, epsilon, alpha,
+                 input_dims, num_actions, fc_dims=[256, 256],
+                 max_mem_size=100000, batch_size=64,
+                 eps_min=.01, eps_dec = .995,
+                 opt=max,
+                 verbose=False,
+                 plot=False,
+                 punish_invalid=False,
+                 ignore_invalid=True):
         self.gamma = gamma # discount factor
         self.epsilon = epsilon # exploration rate
         self.alpha = alpha # learning rate
@@ -73,6 +107,12 @@ class DQAgent():
         self.torch_opt = T.max if opt == max else T.min # torch equivalent of opt
         self.torch_argopt = T.argmax if opt == max else T.argmin # torch equivalent of argopt
         self.verbose = verbose # whether to print debug information
+        self.plot = plot # whether to plot results
+        self.punish_invalid = punish_invalid # whether to punish agent for invalid actions
+        self.ignore_invalid = ignore_invalid # whether to ignore invalid actions
+
+        if not punish_invalid and not ignore_invalid:
+            print('WARNING: Agent is neither punishing nor ignoring invalid actions. This may lead to unexpected behavior.')
 
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu') # device to use for training
 
@@ -82,7 +122,7 @@ class DQAgent():
         self.target_net = DQNetwork(input_dims=input_dims, fc_dims=fc_dims, num_actions=num_actions).to(self.device) # target network
         self.target_net.load_state_dict(self.policy_net.state_dict()) # copy policy network weights to target network
         self.parameters = nn.ModuleList(self.policy_net.fc).parameters() # list of parameters for all layers
-        self.optimizer = optim.AdamW(self.parameters, lr=alpha, amsgrad=True) # AdamW optimizer
+        self.optimizer = optim.Adam(self.parameters, lr=alpha) # Adam optimizer
         self.buffer = ReplayBuffer(max_mem_size) # replay buffer
         self.loss = nn.SmoothL1Loss() # Huber loss
 
@@ -113,8 +153,12 @@ class DQAgent():
         with T.no_grad():
             target_eval = self.target_net(next_state_batch) # get Q values for all actions in next state (n x num_actions)
             # Filter out disabled actions
-            target_eval[disabled_actions_mask] = -np.inf if self.opt == max else np.inf # set disabled actions to -inf if max opt, inf if min opt
+            if self.ignore_invalid:
+                # Make disabled actions have unattractive Q values
+                target_eval[disabled_actions_mask] = -np.inf if self.opt == max else np.inf # set disabled actions to -inf if max opt, inf if min opt
             next_state_values = self.torch_opt(target_eval, 1)[0] # get optimal Q values of all actions in next state (n x 1)
+        if self.punish_invalid:
+            pass # TODO: implement punishment for invalid actions
         expected_state_action_values = (next_state_values * self.gamma) + reward_batch # calculate expected state action values
         loss = self.loss(state_action_values, expected_state_action_values.unsqueeze(1)) # calculate loss
         self.optimizer.zero_grad() # zero gradients
@@ -133,6 +177,9 @@ class DQAgent():
 def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
     if not is_reward:
         return None # Q-learning only works for expected reward properties
+    
+    if model_checker.args.plot:
+        results = Results()
     
     SI = model_checker.network.get_initial_state() # initial state
     
@@ -153,7 +200,10 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
                     eps_min=model_checker.args.epsilon_min,
                     eps_dec=model_checker.args.epsilon_decay,
                     opt=utils._opt(op),
-                    verbose=model_checker.args.verbose)
+                    verbose=model_checker.args.verbose,
+                    plot=model_checker.args.plot,
+                    punish_invalid=model_checker.args.punish_invalid,
+                    ignore_invalid=model_checker.args.ignore_invalid)
     
     if model_checker.args.verbose:
         print(f'One-hot variables: {True if model_checker.args.onehot_all else model_checker.args.onehot}')
@@ -165,6 +215,8 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
         _s = SI # reset state to initial state
         _obs = list(utils.state2obs(model_checker.network, _s, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot)) # observation of initial state
 
+        if model_checker.args.plot:
+            results.push(q_value, loss)
         if model_checker.args.verbose:
             t1 = timer()
             if t1 - t0 > model_checker.PROGRESS_INTERVAL:
@@ -182,23 +234,27 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
             delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
             reward = [reward_exp]
             _s = model_checker.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
+
+            # If we have reached a terminal state, break
+            # The only possible transition is to itself, i.e., s' = s (tau loop)
+            if _s == s and len(A) == 1 and len(D) == 1:
+                break # if term(s')
+
             _obs = list(utils.state2obs(model_checker.network, _s, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot)) # get observation from state
-            
+
             agent.buffer.push_mdp_tensor(obs, action, reward[0], _obs, enabled_actions) # store transition in replay buffer
 
             loss = agent.learn() # train agent
 
             # Soft update of the target network's weights
             agent.soft_update(model_checker.args.tau)
-
-            # If we have reached a terminal state, break
-            # The only possible transition is to itself, i.e., s' = s (tau loop)
-            if _s == s and len(A) == 1 and len(D) == 1:
-                break # if term(s')
     
         enabled_actions = [a.transitions[0] for a in A] # enabled actions in initial state
         _, q_value = agent.choose_action(list(utils.state2obs(model_checker.network, SI, onehot_all_vars=model_checker.args.onehot_all, onehot_vars=model_checker.args.onehot)), enabled_actions, force_greedy=True)
     
     if model_checker.args.verbose:
         print(f'Finished: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}')
+    if model_checker.args.plot:
+        results.push(q_value, loss)
+        results.plot()
     return q_value

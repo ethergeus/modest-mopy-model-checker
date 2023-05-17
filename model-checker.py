@@ -6,7 +6,7 @@ import argparse
 
 
 class ModelChecker():
-    PROGRESS_INTERVAL = 2 # seconds
+    PROGRESS_INTERVAL = 1 # seconds
     MAX_RELATIVE_ERROR = 1e-6; # maximum relative error for value iteration
     EPSILON_START = 1.0 # starting epsilon for deep Q-learning
     EPSILON_MIN = 0.1 # ending epsilon for deep Q-learning
@@ -14,12 +14,11 @@ class ModelChecker():
     Q_LEARNING_EXPLORATION = 0.1 # epsilon for Q-learning
     Q_LEARNING_RATE = 0.1 # alpha for Q-learning
     Q_LEARNING_DISCOUNT = 1 # gamma for Q-learning
-    Q_LEARNING_RUNS = 5000 # number of runs for Q-learning
+    Q_LEARNING_RUNS = 10000 # number of runs for Q-learning
     MAX_MEM_SIZE = 100000 # maximum memory size for deep Q-learning
-    BATCH_SIZE = 64 # batch size for deep Q-learning
-    UPDATE_INTERVAL = 1000 # number of steps between target network updates for deep Q-learning
-    TAU = 0.005 # tau for soft target network updates
-    FC_DIMS = [256, 256] # fully connected layer dimensions for deep Q-learning
+    BATCH_SIZE = 16 # batch size for deep Q-learning
+    TAU = 0.01 # tau for soft target network updates
+    FC_DIMS = [256, 512, 256] # fully connected layer dimensions for deep Q-learning
     ONEHOT_ALL = False # whether to use one-hot encoding for states
     ONEHOT = ['state'] # variables to use one-hot encoding for
 
@@ -50,13 +49,15 @@ class ModelChecker():
         parser.add_argument('--deep-q-learning', action='store_true', help='use deep Q-learning to evaluate properties')
         parser.add_argument('--max-mem-size', type=int, default=self.MAX_MEM_SIZE, help=f'maximum size of the replay memory (default: {self.MAX_MEM_SIZE})')
         parser.add_argument('--batch-size', type=int, default=self.BATCH_SIZE, help=f'batch size for training (default: {self.BATCH_SIZE})')
-        parser.add_argument('--update-interval', type=int, default=self.UPDATE_INTERVAL, help=f'number of steps between target network updates (default: {self.UPDATE_INTERVAL})')
         parser.add_argument('--tau', type=float, default=self.TAU, help=f'tau for soft target network updates (default: {self.TAU})')
         parser.add_argument('--fc-dims', type=int, nargs='+', default=self.FC_DIMS, help=f'dimensions of the fully connected layers (default: {self.FC_DIMS})')
         parser.add_argument('--onehot-all', action='store_true', help='use one-hot encoding for all variables')
         parser.add_argument('--onehot', type=str, nargs='+', default=self.ONEHOT, help=f'variables to use one-hot encoding for (default: {self.ONEHOT})')
+        parser.add_argument('--punish-invalid', action='store_true', help='punish the agent for taking actions that are not in the model')
+        parser.add_argument('--ignore-invalid', action='store_true', help='ignore invalid actions instead of punishing the agent for taking them')
 
         parser.add_argument('--verbose', '-v', action='store_true', help='print progress information when available')
+        parser.add_argument('--plot', action='store_true', help='plot the results')
 
         self.args = parser.parse_args()
 
