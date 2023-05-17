@@ -340,3 +340,16 @@ $ modest mcsta modelModest/g7-dnd.modest
     Iterations:  19 
     Time:        0.0 s
 ```
+
+### Tools
+
+The `tools` directory contains a number of tools that can be used to generate models and analyze results.
+
+#### `convert-all.sh`
+Converts all models in a directory to Python code. Example usage:
+
+```bash
+# The following command converts all models in the `qcomp` directory to Python code
+# `-F` flattens the model, `-E` defines the experiments to run
+$ ./tools/convert-all.sh qcomp -F -E "K=2"
+```

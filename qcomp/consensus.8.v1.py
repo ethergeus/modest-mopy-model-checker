@@ -167,15 +167,15 @@ class Transient(object):
 		result += ")"
 		return result
 
-# Automaton: process1
-class process1Automaton(object):
+# Automaton: process1 || process2 || process3 || process4 || process5 || process6 || process7 || process8
+class process1____process2____process3____process4____process5____process6____process7____process8Automaton(object):
 	__slots__ = ("network", "transition_counts", "transition_labels", "branch_counts")
 	
 	def __init__(self, network: Network):
 		self.network = network
-		self.transition_counts = [8]
-		self.transition_labels = [[2, 2, 2, 2, 2, 2, 1, 3]]
-		self.branch_counts = [[2, 1, 1, 1, 1, 1, 1, 1]]
+		self.transition_counts = [50]
+		self.transition_labels = [[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3]]
+		self.branch_counts = [[2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1]]
 	
 	def set_initial_values(self, state: State) -> None:
 		pass
@@ -220,8 +220,92 @@ class process1Automaton(object):
 			elif transition == 5:
 				return (((state.pc1 == 2) and (state.counter > 8)) and (state.counter < 40))
 			elif transition == 6:
-				return (state.pc1 == 3)
+				return (state.pc2 == 0)
 			elif transition == 7:
+				return (((state.pc2 == 1) and (state.coin2 == 0)) and (state.counter > 0))
+			elif transition == 8:
+				return (((state.pc2 == 1) and (state.coin2 == 1)) and (state.counter < 48))
+			elif transition == 9:
+				return ((state.pc2 == 2) and (state.counter <= 8))
+			elif transition == 10:
+				return ((state.pc2 == 2) and (state.counter >= 40))
+			elif transition == 11:
+				return (((state.pc2 == 2) and (state.counter > 8)) and (state.counter < 40))
+			elif transition == 12:
+				return (state.pc3 == 0)
+			elif transition == 13:
+				return (((state.pc3 == 1) and (state.coin3 == 0)) and (state.counter > 0))
+			elif transition == 14:
+				return (((state.pc3 == 1) and (state.coin3 == 1)) and (state.counter < 48))
+			elif transition == 15:
+				return ((state.pc3 == 2) and (state.counter <= 8))
+			elif transition == 16:
+				return ((state.pc3 == 2) and (state.counter >= 40))
+			elif transition == 17:
+				return (((state.pc3 == 2) and (state.counter > 8)) and (state.counter < 40))
+			elif transition == 18:
+				return (state.pc4 == 0)
+			elif transition == 19:
+				return (((state.pc4 == 1) and (state.coin4 == 0)) and (state.counter > 0))
+			elif transition == 20:
+				return (((state.pc4 == 1) and (state.coin4 == 1)) and (state.counter < 48))
+			elif transition == 21:
+				return ((state.pc4 == 2) and (state.counter <= 8))
+			elif transition == 22:
+				return ((state.pc4 == 2) and (state.counter >= 40))
+			elif transition == 23:
+				return (((state.pc4 == 2) and (state.counter > 8)) and (state.counter < 40))
+			elif transition == 24:
+				return (state.pc5 == 0)
+			elif transition == 25:
+				return (((state.pc5 == 1) and (state.coin5 == 0)) and (state.counter > 0))
+			elif transition == 26:
+				return (((state.pc5 == 1) and (state.coin5 == 1)) and (state.counter < 48))
+			elif transition == 27:
+				return ((state.pc5 == 2) and (state.counter <= 8))
+			elif transition == 28:
+				return ((state.pc5 == 2) and (state.counter >= 40))
+			elif transition == 29:
+				return (((state.pc5 == 2) and (state.counter > 8)) and (state.counter < 40))
+			elif transition == 30:
+				return (state.pc6 == 0)
+			elif transition == 31:
+				return (((state.pc6 == 1) and (state.coin6 == 0)) and (state.counter > 0))
+			elif transition == 32:
+				return (((state.pc6 == 1) and (state.coin6 == 1)) and (state.counter < 48))
+			elif transition == 33:
+				return ((state.pc6 == 2) and (state.counter <= 8))
+			elif transition == 34:
+				return ((state.pc6 == 2) and (state.counter >= 40))
+			elif transition == 35:
+				return (((state.pc6 == 2) and (state.counter > 8)) and (state.counter < 40))
+			elif transition == 36:
+				return (state.pc7 == 0)
+			elif transition == 37:
+				return (((state.pc7 == 1) and (state.coin7 == 0)) and (state.counter > 0))
+			elif transition == 38:
+				return (((state.pc7 == 1) and (state.coin7 == 1)) and (state.counter < 48))
+			elif transition == 39:
+				return ((state.pc7 == 2) and (state.counter <= 8))
+			elif transition == 40:
+				return ((state.pc7 == 2) and (state.counter >= 40))
+			elif transition == 41:
+				return (((state.pc7 == 2) and (state.counter > 8)) and (state.counter < 40))
+			elif transition == 42:
+				return (state.pc8 == 0)
+			elif transition == 43:
+				return (((state.pc8 == 1) and (state.coin8 == 0)) and (state.counter > 0))
+			elif transition == 44:
+				return (((state.pc8 == 1) and (state.coin8 == 1)) and (state.counter < 48))
+			elif transition == 45:
+				return ((state.pc8 == 2) and (state.counter <= 8))
+			elif transition == 46:
+				return ((state.pc8 == 2) and (state.counter >= 40))
+			elif transition == 47:
+				return (((state.pc8 == 2) and (state.counter > 8)) and (state.counter < 40))
+			elif transition == 48:
+				return ((((((((state.pc1 == 3) and (state.pc2 == 3)) and (state.pc3 == 3)) and (state.pc4 == 3)) and (state.pc5 == 3)) and (state.pc6 == 3)) and (state.pc7 == 3)) and (state.pc8 == 3))
+			elif transition == 49:
 				return True
 			else:
 				raise IndexError
@@ -255,8 +339,99 @@ class process1Automaton(object):
 			elif transition == 5:
 				return 1
 			elif transition == 6:
-				return 1
+				if True:
+					return (5 / 10)
 			elif transition == 7:
+				return 1
+			elif transition == 8:
+				return 1
+			elif transition == 9:
+				return 1
+			elif transition == 10:
+				return 1
+			elif transition == 11:
+				return 1
+			elif transition == 12:
+				if True:
+					return (5 / 10)
+			elif transition == 13:
+				return 1
+			elif transition == 14:
+				return 1
+			elif transition == 15:
+				return 1
+			elif transition == 16:
+				return 1
+			elif transition == 17:
+				return 1
+			elif transition == 18:
+				if True:
+					return (5 / 10)
+			elif transition == 19:
+				return 1
+			elif transition == 20:
+				return 1
+			elif transition == 21:
+				return 1
+			elif transition == 22:
+				return 1
+			elif transition == 23:
+				return 1
+			elif transition == 24:
+				if True:
+					return (5 / 10)
+			elif transition == 25:
+				return 1
+			elif transition == 26:
+				return 1
+			elif transition == 27:
+				return 1
+			elif transition == 28:
+				return 1
+			elif transition == 29:
+				return 1
+			elif transition == 30:
+				if True:
+					return (5 / 10)
+			elif transition == 31:
+				return 1
+			elif transition == 32:
+				return 1
+			elif transition == 33:
+				return 1
+			elif transition == 34:
+				return 1
+			elif transition == 35:
+				return 1
+			elif transition == 36:
+				if True:
+					return (5 / 10)
+			elif transition == 37:
+				return 1
+			elif transition == 38:
+				return 1
+			elif transition == 39:
+				return 1
+			elif transition == 40:
+				return 1
+			elif transition == 41:
+				return 1
+			elif transition == 42:
+				if True:
+					return (5 / 10)
+			elif transition == 43:
+				return 1
+			elif transition == 44:
+				return 1
+			elif transition == 45:
+				return 1
+			elif transition == 46:
+				return 1
+			elif transition == 47:
+				return 1
+			elif transition == 48:
+				return 1
+			elif transition == 49:
 				return 1
 			else:
 				raise IndexError
@@ -264,105 +439,24 @@ class process1Automaton(object):
 			raise IndexError
 	
 	def jump(self, state: State, transient: Transient, transition: int, branch: int, assignment_index: int, target_state: State, target_transient: Transient) -> None:
-		if assignment_index == -3:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.steps = 1
-					elif branch == 1:
-						target_transient.steps = 1
-				elif transition == 1:
-					if branch == 0:
-						target_transient.steps = 1
-				elif transition == 2:
-					if branch == 0:
-						target_transient.steps = 1
-				elif transition == 3:
-					if branch == 0:
-						target_transient.steps = 1
-				elif transition == 4:
-					if branch == 0:
-						target_transient.steps = 1
-				elif transition == 5:
-					if branch == 0:
-						target_transient.steps = 1
-				elif transition == 6:
-					if branch == 0:
-						target_transient.steps = 1
-				elif transition == 7:
-					if branch == 0:
-						target_transient.steps = 1
-		elif assignment_index == -2:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-					elif branch == 1:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-		elif assignment_index == -1:
+		if assignment_index == 0:
 			location = 0
 			if location == 0:
 				if transition == 0:
 					if branch == 0:
 						target_transient.steps = 0
-					elif branch == 1:
-						target_transient.steps = 0
-				elif transition == 1:
-					if branch == 0:
-						target_transient.steps = 0
-				elif transition == 2:
-					if branch == 0:
-						target_transient.steps = 0
-				elif transition == 3:
-					if branch == 0:
-						target_transient.steps = 0
-				elif transition == 4:
-					if branch == 0:
-						target_transient.steps = 0
-				elif transition == 5:
-					if branch == 0:
-						target_transient.steps = 0
-				elif transition == 6:
-					if branch == 0:
-						target_transient.steps = 0
-				elif transition == 7:
-					if branch == 0:
-						target_transient.steps = 0
-		elif assignment_index == 0:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc1 = 1
 						target_state.coin1 = 0
 					elif branch == 1:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc1 = 1
 						target_state.coin1 = 1
 				elif transition == 1:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter - 1)
 						if target_state.counter < 0:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is less than the lower bound of 0 for variable \"counter\".")
@@ -370,6 +464,8 @@ class process1Automaton(object):
 						target_state.coin1 = 0
 				elif transition == 2:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter + 1)
 						if target_state.counter > 48:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is greater than the upper bound of 48 for variable \"counter\".")
@@ -377,1328 +473,359 @@ class process1Automaton(object):
 						target_state.coin1 = 0
 				elif transition == 3:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc1 = 3
 						target_state.coin1 = 0
 				elif transition == 4:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc1 = 3
 						target_state.coin1 = 1
 				elif transition == 5:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc1 = 0
 				elif transition == 6:
 					if branch == 0:
-						target_state.pc1 = 3
-		elif assignment_index == 1:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-					elif branch == 1:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-
-# Automaton: process2
-class process2Automaton(object):
-	__slots__ = ("network", "transition_counts", "transition_labels", "branch_counts")
-	
-	def __init__(self, network: Network):
-		self.network = network
-		self.transition_counts = [8]
-		self.transition_labels = [[2, 2, 2, 2, 2, 2, 1, 3]]
-		self.branch_counts = [[2, 1, 1, 1, 1, 1, 1, 1]]
-	
-	def set_initial_values(self, state: State) -> None:
-		pass
-	
-	def set_initial_transient_values(self, transient: Transient) -> None:
-		pass
-	
-	def get_transient_value(self, state: State, transient_variable: str):
-		location = 0
-		return None
-	
-	def get_transition_count(self, state: State) -> int:
-		return self.transition_counts[0]
-	
-	def get_transition_label(self, state: State, transition: int) -> int:
-		return self.transition_labels[0][transition]
-	
-	def get_guard_value(self, state: State, transition: int) -> bool:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				return (state.pc2 == 0)
-			elif transition == 1:
-				return (((state.pc2 == 1) and (state.coin2 == 0)) and (state.counter > 0))
-			elif transition == 2:
-				return (((state.pc2 == 1) and (state.coin2 == 1)) and (state.counter < 48))
-			elif transition == 3:
-				return ((state.pc2 == 2) and (state.counter <= 8))
-			elif transition == 4:
-				return ((state.pc2 == 2) and (state.counter >= 40))
-			elif transition == 5:
-				return (((state.pc2 == 2) and (state.counter > 8)) and (state.counter < 40))
-			elif transition == 6:
-				return (state.pc2 == 3)
-			elif transition == 7:
-				return True
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def get_rate_value(self, state: State, transition: int) -> Optional[float]:
-		location = 0
-		if location == 0:
-			return None
-		else:
-			raise IndexError
-	
-	def get_branch_count(self, state: State, transition: int) -> int:
-		return self.branch_counts[0][transition]
-	
-	def get_probability_value(self, state: State, transition: int, branch: int) -> float:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				if True:
-					return (5 / 10)
-			elif transition == 1:
-				return 1
-			elif transition == 2:
-				return 1
-			elif transition == 3:
-				return 1
-			elif transition == 4:
-				return 1
-			elif transition == 5:
-				return 1
-			elif transition == 6:
-				return 1
-			elif transition == 7:
-				return 1
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def jump(self, state: State, transient: Transient, transition: int, branch: int, assignment_index: int, target_state: State, target_transient: Transient) -> None:
-		if assignment_index == -2:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-					elif branch == 1:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-		elif assignment_index == 0:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc2 = 1
 						target_state.coin2 = 0
 					elif branch == 1:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc2 = 1
 						target_state.coin2 = 1
-				elif transition == 1:
+				elif transition == 7:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter - 1)
 						if target_state.counter < 0:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is less than the lower bound of 0 for variable \"counter\".")
 						target_state.pc2 = 2
 						target_state.coin2 = 0
-				elif transition == 2:
+				elif transition == 8:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter + 1)
 						if target_state.counter > 48:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is greater than the upper bound of 48 for variable \"counter\".")
 						target_state.pc2 = 2
 						target_state.coin2 = 0
-				elif transition == 3:
+				elif transition == 9:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc2 = 3
 						target_state.coin2 = 0
-				elif transition == 4:
+				elif transition == 10:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc2 = 3
 						target_state.coin2 = 1
-				elif transition == 5:
+				elif transition == 11:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc2 = 0
-				elif transition == 6:
+				elif transition == 12:
 					if branch == 0:
-						target_state.pc2 = 3
-		elif assignment_index == 1:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-					elif branch == 1:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-
-# Automaton: process3
-class process3Automaton(object):
-	__slots__ = ("network", "transition_counts", "transition_labels", "branch_counts")
-	
-	def __init__(self, network: Network):
-		self.network = network
-		self.transition_counts = [8]
-		self.transition_labels = [[2, 2, 2, 2, 2, 2, 1, 3]]
-		self.branch_counts = [[2, 1, 1, 1, 1, 1, 1, 1]]
-	
-	def set_initial_values(self, state: State) -> None:
-		pass
-	
-	def set_initial_transient_values(self, transient: Transient) -> None:
-		pass
-	
-	def get_transient_value(self, state: State, transient_variable: str):
-		location = 0
-		return None
-	
-	def get_transition_count(self, state: State) -> int:
-		return self.transition_counts[0]
-	
-	def get_transition_label(self, state: State, transition: int) -> int:
-		return self.transition_labels[0][transition]
-	
-	def get_guard_value(self, state: State, transition: int) -> bool:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				return (state.pc3 == 0)
-			elif transition == 1:
-				return (((state.pc3 == 1) and (state.coin3 == 0)) and (state.counter > 0))
-			elif transition == 2:
-				return (((state.pc3 == 1) and (state.coin3 == 1)) and (state.counter < 48))
-			elif transition == 3:
-				return ((state.pc3 == 2) and (state.counter <= 8))
-			elif transition == 4:
-				return ((state.pc3 == 2) and (state.counter >= 40))
-			elif transition == 5:
-				return (((state.pc3 == 2) and (state.counter > 8)) and (state.counter < 40))
-			elif transition == 6:
-				return (state.pc3 == 3)
-			elif transition == 7:
-				return True
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def get_rate_value(self, state: State, transition: int) -> Optional[float]:
-		location = 0
-		if location == 0:
-			return None
-		else:
-			raise IndexError
-	
-	def get_branch_count(self, state: State, transition: int) -> int:
-		return self.branch_counts[0][transition]
-	
-	def get_probability_value(self, state: State, transition: int, branch: int) -> float:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				if True:
-					return (5 / 10)
-			elif transition == 1:
-				return 1
-			elif transition == 2:
-				return 1
-			elif transition == 3:
-				return 1
-			elif transition == 4:
-				return 1
-			elif transition == 5:
-				return 1
-			elif transition == 6:
-				return 1
-			elif transition == 7:
-				return 1
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def jump(self, state: State, transient: Transient, transition: int, branch: int, assignment_index: int, target_state: State, target_transient: Transient) -> None:
-		if assignment_index == -2:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-					elif branch == 1:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-		elif assignment_index == 0:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc3 = 1
 						target_state.coin3 = 0
 					elif branch == 1:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc3 = 1
 						target_state.coin3 = 1
-				elif transition == 1:
+				elif transition == 13:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter - 1)
 						if target_state.counter < 0:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is less than the lower bound of 0 for variable \"counter\".")
 						target_state.pc3 = 2
 						target_state.coin3 = 0
-				elif transition == 2:
+				elif transition == 14:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter + 1)
 						if target_state.counter > 48:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is greater than the upper bound of 48 for variable \"counter\".")
 						target_state.pc3 = 2
 						target_state.coin3 = 0
-				elif transition == 3:
+				elif transition == 15:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc3 = 3
 						target_state.coin3 = 0
-				elif transition == 4:
+				elif transition == 16:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc3 = 3
 						target_state.coin3 = 1
-				elif transition == 5:
+				elif transition == 17:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc3 = 0
-				elif transition == 6:
+				elif transition == 18:
 					if branch == 0:
-						target_state.pc3 = 3
-		elif assignment_index == 1:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-					elif branch == 1:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-
-# Automaton: process4
-class process4Automaton(object):
-	__slots__ = ("network", "transition_counts", "transition_labels", "branch_counts")
-	
-	def __init__(self, network: Network):
-		self.network = network
-		self.transition_counts = [8]
-		self.transition_labels = [[2, 2, 2, 2, 2, 2, 1, 3]]
-		self.branch_counts = [[2, 1, 1, 1, 1, 1, 1, 1]]
-	
-	def set_initial_values(self, state: State) -> None:
-		pass
-	
-	def set_initial_transient_values(self, transient: Transient) -> None:
-		pass
-	
-	def get_transient_value(self, state: State, transient_variable: str):
-		location = 0
-		return None
-	
-	def get_transition_count(self, state: State) -> int:
-		return self.transition_counts[0]
-	
-	def get_transition_label(self, state: State, transition: int) -> int:
-		return self.transition_labels[0][transition]
-	
-	def get_guard_value(self, state: State, transition: int) -> bool:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				return (state.pc4 == 0)
-			elif transition == 1:
-				return (((state.pc4 == 1) and (state.coin4 == 0)) and (state.counter > 0))
-			elif transition == 2:
-				return (((state.pc4 == 1) and (state.coin4 == 1)) and (state.counter < 48))
-			elif transition == 3:
-				return ((state.pc4 == 2) and (state.counter <= 8))
-			elif transition == 4:
-				return ((state.pc4 == 2) and (state.counter >= 40))
-			elif transition == 5:
-				return (((state.pc4 == 2) and (state.counter > 8)) and (state.counter < 40))
-			elif transition == 6:
-				return (state.pc4 == 3)
-			elif transition == 7:
-				return True
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def get_rate_value(self, state: State, transition: int) -> Optional[float]:
-		location = 0
-		if location == 0:
-			return None
-		else:
-			raise IndexError
-	
-	def get_branch_count(self, state: State, transition: int) -> int:
-		return self.branch_counts[0][transition]
-	
-	def get_probability_value(self, state: State, transition: int, branch: int) -> float:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				if True:
-					return (5 / 10)
-			elif transition == 1:
-				return 1
-			elif transition == 2:
-				return 1
-			elif transition == 3:
-				return 1
-			elif transition == 4:
-				return 1
-			elif transition == 5:
-				return 1
-			elif transition == 6:
-				return 1
-			elif transition == 7:
-				return 1
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def jump(self, state: State, transient: Transient, transition: int, branch: int, assignment_index: int, target_state: State, target_transient: Transient) -> None:
-		if assignment_index == -2:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-					elif branch == 1:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-		elif assignment_index == 0:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc4 = 1
 						target_state.coin4 = 0
 					elif branch == 1:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc4 = 1
 						target_state.coin4 = 1
-				elif transition == 1:
+				elif transition == 19:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter - 1)
 						if target_state.counter < 0:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is less than the lower bound of 0 for variable \"counter\".")
 						target_state.pc4 = 2
 						target_state.coin4 = 0
-				elif transition == 2:
+				elif transition == 20:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter + 1)
 						if target_state.counter > 48:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is greater than the upper bound of 48 for variable \"counter\".")
 						target_state.pc4 = 2
 						target_state.coin4 = 0
-				elif transition == 3:
+				elif transition == 21:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc4 = 3
 						target_state.coin4 = 0
-				elif transition == 4:
+				elif transition == 22:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc4 = 3
 						target_state.coin4 = 1
-				elif transition == 5:
+				elif transition == 23:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc4 = 0
-				elif transition == 6:
+				elif transition == 24:
 					if branch == 0:
-						target_state.pc4 = 3
-		elif assignment_index == 1:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-					elif branch == 1:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-
-# Automaton: process5
-class process5Automaton(object):
-	__slots__ = ("network", "transition_counts", "transition_labels", "branch_counts")
-	
-	def __init__(self, network: Network):
-		self.network = network
-		self.transition_counts = [8]
-		self.transition_labels = [[2, 2, 2, 2, 2, 2, 1, 3]]
-		self.branch_counts = [[2, 1, 1, 1, 1, 1, 1, 1]]
-	
-	def set_initial_values(self, state: State) -> None:
-		pass
-	
-	def set_initial_transient_values(self, transient: Transient) -> None:
-		pass
-	
-	def get_transient_value(self, state: State, transient_variable: str):
-		location = 0
-		return None
-	
-	def get_transition_count(self, state: State) -> int:
-		return self.transition_counts[0]
-	
-	def get_transition_label(self, state: State, transition: int) -> int:
-		return self.transition_labels[0][transition]
-	
-	def get_guard_value(self, state: State, transition: int) -> bool:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				return (state.pc5 == 0)
-			elif transition == 1:
-				return (((state.pc5 == 1) and (state.coin5 == 0)) and (state.counter > 0))
-			elif transition == 2:
-				return (((state.pc5 == 1) and (state.coin5 == 1)) and (state.counter < 48))
-			elif transition == 3:
-				return ((state.pc5 == 2) and (state.counter <= 8))
-			elif transition == 4:
-				return ((state.pc5 == 2) and (state.counter >= 40))
-			elif transition == 5:
-				return (((state.pc5 == 2) and (state.counter > 8)) and (state.counter < 40))
-			elif transition == 6:
-				return (state.pc5 == 3)
-			elif transition == 7:
-				return True
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def get_rate_value(self, state: State, transition: int) -> Optional[float]:
-		location = 0
-		if location == 0:
-			return None
-		else:
-			raise IndexError
-	
-	def get_branch_count(self, state: State, transition: int) -> int:
-		return self.branch_counts[0][transition]
-	
-	def get_probability_value(self, state: State, transition: int, branch: int) -> float:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				if True:
-					return (5 / 10)
-			elif transition == 1:
-				return 1
-			elif transition == 2:
-				return 1
-			elif transition == 3:
-				return 1
-			elif transition == 4:
-				return 1
-			elif transition == 5:
-				return 1
-			elif transition == 6:
-				return 1
-			elif transition == 7:
-				return 1
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def jump(self, state: State, transient: Transient, transition: int, branch: int, assignment_index: int, target_state: State, target_transient: Transient) -> None:
-		if assignment_index == -2:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-					elif branch == 1:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-		elif assignment_index == 0:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc5 = 1
 						target_state.coin5 = 0
 					elif branch == 1:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc5 = 1
 						target_state.coin5 = 1
-				elif transition == 1:
+				elif transition == 25:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter - 1)
 						if target_state.counter < 0:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is less than the lower bound of 0 for variable \"counter\".")
 						target_state.pc5 = 2
 						target_state.coin5 = 0
-				elif transition == 2:
+				elif transition == 26:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter + 1)
 						if target_state.counter > 48:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is greater than the upper bound of 48 for variable \"counter\".")
 						target_state.pc5 = 2
 						target_state.coin5 = 0
-				elif transition == 3:
+				elif transition == 27:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc5 = 3
 						target_state.coin5 = 0
-				elif transition == 4:
+				elif transition == 28:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc5 = 3
 						target_state.coin5 = 1
-				elif transition == 5:
+				elif transition == 29:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc5 = 0
-				elif transition == 6:
+				elif transition == 30:
 					if branch == 0:
-						target_state.pc5 = 3
-		elif assignment_index == 1:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-					elif branch == 1:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-
-# Automaton: process6
-class process6Automaton(object):
-	__slots__ = ("network", "transition_counts", "transition_labels", "branch_counts")
-	
-	def __init__(self, network: Network):
-		self.network = network
-		self.transition_counts = [8]
-		self.transition_labels = [[2, 2, 2, 2, 2, 2, 1, 3]]
-		self.branch_counts = [[2, 1, 1, 1, 1, 1, 1, 1]]
-	
-	def set_initial_values(self, state: State) -> None:
-		pass
-	
-	def set_initial_transient_values(self, transient: Transient) -> None:
-		pass
-	
-	def get_transient_value(self, state: State, transient_variable: str):
-		location = 0
-		return None
-	
-	def get_transition_count(self, state: State) -> int:
-		return self.transition_counts[0]
-	
-	def get_transition_label(self, state: State, transition: int) -> int:
-		return self.transition_labels[0][transition]
-	
-	def get_guard_value(self, state: State, transition: int) -> bool:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				return (state.pc6 == 0)
-			elif transition == 1:
-				return (((state.pc6 == 1) and (state.coin6 == 0)) and (state.counter > 0))
-			elif transition == 2:
-				return (((state.pc6 == 1) and (state.coin6 == 1)) and (state.counter < 48))
-			elif transition == 3:
-				return ((state.pc6 == 2) and (state.counter <= 8))
-			elif transition == 4:
-				return ((state.pc6 == 2) and (state.counter >= 40))
-			elif transition == 5:
-				return (((state.pc6 == 2) and (state.counter > 8)) and (state.counter < 40))
-			elif transition == 6:
-				return (state.pc6 == 3)
-			elif transition == 7:
-				return True
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def get_rate_value(self, state: State, transition: int) -> Optional[float]:
-		location = 0
-		if location == 0:
-			return None
-		else:
-			raise IndexError
-	
-	def get_branch_count(self, state: State, transition: int) -> int:
-		return self.branch_counts[0][transition]
-	
-	def get_probability_value(self, state: State, transition: int, branch: int) -> float:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				if True:
-					return (5 / 10)
-			elif transition == 1:
-				return 1
-			elif transition == 2:
-				return 1
-			elif transition == 3:
-				return 1
-			elif transition == 4:
-				return 1
-			elif transition == 5:
-				return 1
-			elif transition == 6:
-				return 1
-			elif transition == 7:
-				return 1
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def jump(self, state: State, transient: Transient, transition: int, branch: int, assignment_index: int, target_state: State, target_transient: Transient) -> None:
-		if assignment_index == -2:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-					elif branch == 1:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-		elif assignment_index == 0:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc6 = 1
 						target_state.coin6 = 0
 					elif branch == 1:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc6 = 1
 						target_state.coin6 = 1
-				elif transition == 1:
+				elif transition == 31:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter - 1)
 						if target_state.counter < 0:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is less than the lower bound of 0 for variable \"counter\".")
 						target_state.pc6 = 2
 						target_state.coin6 = 0
-				elif transition == 2:
+				elif transition == 32:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter + 1)
 						if target_state.counter > 48:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is greater than the upper bound of 48 for variable \"counter\".")
 						target_state.pc6 = 2
 						target_state.coin6 = 0
-				elif transition == 3:
+				elif transition == 33:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc6 = 3
 						target_state.coin6 = 0
-				elif transition == 4:
+				elif transition == 34:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc6 = 3
 						target_state.coin6 = 1
-				elif transition == 5:
+				elif transition == 35:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc6 = 0
-				elif transition == 6:
+				elif transition == 36:
 					if branch == 0:
-						target_state.pc6 = 3
-		elif assignment_index == 1:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-					elif branch == 1:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-
-# Automaton: process7
-class process7Automaton(object):
-	__slots__ = ("network", "transition_counts", "transition_labels", "branch_counts")
-	
-	def __init__(self, network: Network):
-		self.network = network
-		self.transition_counts = [8]
-		self.transition_labels = [[2, 2, 2, 2, 2, 2, 1, 3]]
-		self.branch_counts = [[2, 1, 1, 1, 1, 1, 1, 1]]
-	
-	def set_initial_values(self, state: State) -> None:
-		pass
-	
-	def set_initial_transient_values(self, transient: Transient) -> None:
-		pass
-	
-	def get_transient_value(self, state: State, transient_variable: str):
-		location = 0
-		return None
-	
-	def get_transition_count(self, state: State) -> int:
-		return self.transition_counts[0]
-	
-	def get_transition_label(self, state: State, transition: int) -> int:
-		return self.transition_labels[0][transition]
-	
-	def get_guard_value(self, state: State, transition: int) -> bool:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				return (state.pc7 == 0)
-			elif transition == 1:
-				return (((state.pc7 == 1) and (state.coin7 == 0)) and (state.counter > 0))
-			elif transition == 2:
-				return (((state.pc7 == 1) and (state.coin7 == 1)) and (state.counter < 48))
-			elif transition == 3:
-				return ((state.pc7 == 2) and (state.counter <= 8))
-			elif transition == 4:
-				return ((state.pc7 == 2) and (state.counter >= 40))
-			elif transition == 5:
-				return (((state.pc7 == 2) and (state.counter > 8)) and (state.counter < 40))
-			elif transition == 6:
-				return (state.pc7 == 3)
-			elif transition == 7:
-				return True
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def get_rate_value(self, state: State, transition: int) -> Optional[float]:
-		location = 0
-		if location == 0:
-			return None
-		else:
-			raise IndexError
-	
-	def get_branch_count(self, state: State, transition: int) -> int:
-		return self.branch_counts[0][transition]
-	
-	def get_probability_value(self, state: State, transition: int, branch: int) -> float:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				if True:
-					return (5 / 10)
-			elif transition == 1:
-				return 1
-			elif transition == 2:
-				return 1
-			elif transition == 3:
-				return 1
-			elif transition == 4:
-				return 1
-			elif transition == 5:
-				return 1
-			elif transition == 6:
-				return 1
-			elif transition == 7:
-				return 1
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def jump(self, state: State, transient: Transient, transition: int, branch: int, assignment_index: int, target_state: State, target_transient: Transient) -> None:
-		if assignment_index == -2:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-					elif branch == 1:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-		elif assignment_index == 0:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc7 = 1
 						target_state.coin7 = 0
 					elif branch == 1:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc7 = 1
 						target_state.coin7 = 1
-				elif transition == 1:
+				elif transition == 37:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter - 1)
 						if target_state.counter < 0:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is less than the lower bound of 0 for variable \"counter\".")
 						target_state.pc7 = 2
 						target_state.coin7 = 0
-				elif transition == 2:
+				elif transition == 38:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter + 1)
 						if target_state.counter > 48:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is greater than the upper bound of 48 for variable \"counter\".")
 						target_state.pc7 = 2
 						target_state.coin7 = 0
-				elif transition == 3:
+				elif transition == 39:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc7 = 3
 						target_state.coin7 = 0
-				elif transition == 4:
+				elif transition == 40:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc7 = 3
 						target_state.coin7 = 1
-				elif transition == 5:
+				elif transition == 41:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc7 = 0
-				elif transition == 6:
+				elif transition == 42:
 					if branch == 0:
-						target_state.pc7 = 3
-		elif assignment_index == 1:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-					elif branch == 1:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-
-# Automaton: process8
-class process8Automaton(object):
-	__slots__ = ("network", "transition_counts", "transition_labels", "branch_counts")
-	
-	def __init__(self, network: Network):
-		self.network = network
-		self.transition_counts = [8]
-		self.transition_labels = [[2, 2, 2, 2, 2, 2, 1, 3]]
-		self.branch_counts = [[2, 1, 1, 1, 1, 1, 1, 1]]
-	
-	def set_initial_values(self, state: State) -> None:
-		pass
-	
-	def set_initial_transient_values(self, transient: Transient) -> None:
-		pass
-	
-	def get_transient_value(self, state: State, transient_variable: str):
-		location = 0
-		return None
-	
-	def get_transition_count(self, state: State) -> int:
-		return self.transition_counts[0]
-	
-	def get_transition_label(self, state: State, transition: int) -> int:
-		return self.transition_labels[0][transition]
-	
-	def get_guard_value(self, state: State, transition: int) -> bool:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				return (state.pc8 == 0)
-			elif transition == 1:
-				return (((state.pc8 == 1) and (state.coin8 == 0)) and (state.counter > 0))
-			elif transition == 2:
-				return (((state.pc8 == 1) and (state.coin8 == 1)) and (state.counter < 48))
-			elif transition == 3:
-				return ((state.pc8 == 2) and (state.counter <= 8))
-			elif transition == 4:
-				return ((state.pc8 == 2) and (state.counter >= 40))
-			elif transition == 5:
-				return (((state.pc8 == 2) and (state.counter > 8)) and (state.counter < 40))
-			elif transition == 6:
-				return (state.pc8 == 3)
-			elif transition == 7:
-				return True
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def get_rate_value(self, state: State, transition: int) -> Optional[float]:
-		location = 0
-		if location == 0:
-			return None
-		else:
-			raise IndexError
-	
-	def get_branch_count(self, state: State, transition: int) -> int:
-		return self.branch_counts[0][transition]
-	
-	def get_probability_value(self, state: State, transition: int, branch: int) -> float:
-		location = 0
-		if location == 0:
-			if transition == 0:
-				if True:
-					return (5 / 10)
-			elif transition == 1:
-				return 1
-			elif transition == 2:
-				return 1
-			elif transition == 3:
-				return 1
-			elif transition == 4:
-				return 1
-			elif transition == 5:
-				return 1
-			elif transition == 6:
-				return 1
-			elif transition == 7:
-				return 1
-			else:
-				raise IndexError
-		else:
-			raise IndexError
-	
-	def jump(self, state: State, transient: Transient, transition: int, branch: int, assignment_index: int, target_state: State, target_transient: Transient) -> None:
-		if assignment_index == -2:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-					elif branch == 1:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = transient.steps
-		elif assignment_index == 0:
-			location = 0
-			if location == 0:
-				if transition == 0:
-					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc8 = 1
 						target_state.coin8 = 0
 					elif branch == 1:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc8 = 1
 						target_state.coin8 = 1
-				elif transition == 1:
+				elif transition == 43:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter - 1)
 						if target_state.counter < 0:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is less than the lower bound of 0 for variable \"counter\".")
 						target_state.pc8 = 2
 						target_state.coin8 = 0
-				elif transition == 2:
+				elif transition == 44:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.counter = (state.counter + 1)
 						if target_state.counter > 48:
 							raise OverflowError("Assigned value of " + str(target_state.counter) + " is greater than the upper bound of 48 for variable \"counter\".")
 						target_state.pc8 = 2
 						target_state.coin8 = 0
-				elif transition == 3:
+				elif transition == 45:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc8 = 3
 						target_state.coin8 = 0
-				elif transition == 4:
+				elif transition == 46:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc8 = 3
 						target_state.coin8 = 1
-				elif transition == 5:
+				elif transition == 47:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 						target_state.pc8 = 0
-				elif transition == 6:
+				elif transition == 48:
 					if branch == 0:
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
+						target_state.pc1 = 3
+						target_state.pc2 = 3
+						target_state.pc3 = 3
+						target_state.pc4 = 3
+						target_state.pc5 = 3
+						target_state.pc6 = 3
+						target_state.pc7 = 3
 						target_state.pc8 = 3
-		elif assignment_index == 1:
-			location = 0
-			if location == 0:
-				if transition == 0:
+				elif transition == 49:
 					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-					elif branch == 1:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 1:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 2:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 3:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 4:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 5:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 6:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
-				elif transition == 7:
-					if branch == 0:
-						target_transient.exit_reward_0 = (transient.exit_reward_0 - transient.steps)
+						target_transient.steps = 0
+						target_transient.exit_reward_0 = (1 - 0)
 
 class PropertyExpression(object):
 	__slots__ = ("op", "args")
@@ -1731,7 +858,7 @@ class Property(object):
 class Transition(object):
 	__slots__ = ("sync_vector", "label", "transitions")
 	
-	def __init__(self, sync_vector: int, label: int = 0, transitions: List[int] = [-1, -1, -1, -1, -1, -1, -1, -1]):
+	def __init__(self, sync_vector: int, label: int = 0, transitions: List[int] = [-1]):
 		self.sync_vector = sync_vector
 		self.label = label
 		self.transitions = transitions
@@ -1739,18 +866,18 @@ class Transition(object):
 class Branch(object):
 	__slots__ = ("probability", "branches")
 	
-	def __init__(self, probability = 0.0, branches = [0, 0, 0, 0, 0, 0, 0, 0]):
+	def __init__(self, probability = 0.0, branches = [0]):
 		self.probability = probability
 		self.branches = branches
 
 class Network(object):
-	__slots__ = ("network", "model_type", "components", "transition_labels", "sync_vectors", "properties", "variables", "_initial_transient", "_aut_process1", "_aut_process2", "_aut_process3", "_aut_process4", "_aut_process5", "_aut_process6", "_aut_process7", "_aut_process8")
+	__slots__ = ("network", "model_type", "components", "transition_labels", "sync_vectors", "properties", "variables", "_initial_transient", "_aut_process1____process2____process3____process4____process5____process6____process7____process8")
 	
 	def __init__(self):
 		self.network = self
 		self.model_type = "mdp"
 		self.transition_labels = { 0: "τ", 1: "done", 2: "tau", 3: "set" }
-		self.sync_vectors = [[0, -1, -1, -1, -1, -1, -1, -1, 0], [-1, 0, -1, -1, -1, -1, -1, -1, 0], [-1, -1, 0, -1, -1, -1, -1, -1, 0], [-1, -1, -1, 0, -1, -1, -1, -1, 0], [-1, -1, -1, -1, 0, -1, -1, -1, 0], [-1, -1, -1, -1, -1, 0, -1, -1, 0], [-1, -1, -1, -1, -1, -1, 0, -1, 0], [-1, -1, -1, -1, -1, -1, -1, 0, 0], [1, 1, 1, 1, 1, 1, 1, 1, 1], [2, 3, 3, 3, 3, 3, 3, 3, 2], [3, 2, 3, 3, 3, 3, 3, 3, 2], [3, 3, 2, 3, 3, 3, 3, 3, 2], [3, 3, 3, 2, 3, 3, 3, 3, 2], [3, 3, 3, 3, 2, 3, 3, 3, 2], [3, 3, 3, 3, 3, 2, 3, 3, 2], [3, 3, 3, 3, 3, 3, 2, 3, 2], [3, 3, 3, 3, 3, 3, 3, 2, 2]]
+		self.sync_vectors = [[0, 0], [1, 1], [2, 2]]
 		self.properties = [
 			Property("c1", PropertyExpression(">=", [PropertyExpression("p_min", [PropertyExpression("eventually", [PropertyExpression("ap", [0])])]), 1.0])),
 			Property("c2", PropertyExpression("p_min", [PropertyExpression("eventually", [PropertyExpression("ap", [1])])])),
@@ -1777,15 +904,8 @@ class Network(object):
 			VariableInfo("pc8", None, "int", 0, 3),
 			VariableInfo("coin8", None, "int", 0, 1)
 		]
-		self._aut_process1 = process1Automaton(self)
-		self._aut_process2 = process2Automaton(self)
-		self._aut_process3 = process3Automaton(self)
-		self._aut_process4 = process4Automaton(self)
-		self._aut_process5 = process5Automaton(self)
-		self._aut_process6 = process6Automaton(self)
-		self._aut_process7 = process7Automaton(self)
-		self._aut_process8 = process8Automaton(self)
-		self.components = [self._aut_process1, self._aut_process2, self._aut_process3, self._aut_process4, self._aut_process5, self._aut_process6, self._aut_process7, self._aut_process8]
+		self._aut_process1____process2____process3____process4____process5____process6____process7____process8 = process1____process2____process3____process4____process5____process6____process7____process8Automaton(self)
+		self.components = [self._aut_process1____process2____process3____process4____process5____process6____process7____process8]
 		self._initial_transient = self._get_initial_transient()
 	
 	def get_initial_state(self) -> State:
@@ -1807,14 +927,7 @@ class Network(object):
 		state.coin7 = 0
 		state.pc8 = 0
 		state.coin8 = 0
-		self._aut_process1.set_initial_values(state)
-		self._aut_process2.set_initial_values(state)
-		self._aut_process3.set_initial_values(state)
-		self._aut_process4.set_initial_values(state)
-		self._aut_process5.set_initial_values(state)
-		self._aut_process6.set_initial_values(state)
-		self._aut_process7.set_initial_values(state)
-		self._aut_process8.set_initial_values(state)
+		self._aut_process1____process2____process3____process4____process5____process6____process7____process8.set_initial_values(state)
 		return state
 	
 	def _get_initial_transient(self) -> Transient:
@@ -1825,14 +938,7 @@ class Network(object):
 		transient.agree = False
 		transient.steps = 0
 		transient.exit_reward_0 = 0
-		self._aut_process1.set_initial_transient_values(transient)
-		self._aut_process2.set_initial_transient_values(transient)
-		self._aut_process3.set_initial_transient_values(transient)
-		self._aut_process4.set_initial_transient_values(transient)
-		self._aut_process5.set_initial_transient_values(transient)
-		self._aut_process6.set_initial_transient_values(transient)
-		self._aut_process7.set_initial_transient_values(transient)
-		self._aut_process8.set_initial_transient_values(transient)
+		self._aut_process1____process2____process3____process4____process5____process6____process7____process8.set_initial_transient_values(transient)
 		return transient
 	
 	def get_expression_value(self, state: State, expression: int):
@@ -1861,28 +967,7 @@ class Network(object):
 	
 	def _get_transient_value(self, state: State, transient_variable: str):
 		# Query the automata for the current value of the transient variable
-		result = self._aut_process1.get_transient_value(state, transient_variable)
-		if result is not None:
-			return result
-		result = self._aut_process2.get_transient_value(state, transient_variable)
-		if result is not None:
-			return result
-		result = self._aut_process3.get_transient_value(state, transient_variable)
-		if result is not None:
-			return result
-		result = self._aut_process4.get_transient_value(state, transient_variable)
-		if result is not None:
-			return result
-		result = self._aut_process5.get_transient_value(state, transient_variable)
-		if result is not None:
-			return result
-		result = self._aut_process6.get_transient_value(state, transient_variable)
-		if result is not None:
-			return result
-		result = self._aut_process7.get_transient_value(state, transient_variable)
-		if result is not None:
-			return result
-		result = self._aut_process8.get_transient_value(state, transient_variable)
+		result = self._aut_process1____process2____process3____process4____process5____process6____process7____process8.get_transient_value(state, transient_variable)
 		if result is not None:
 			return result
 		# No automaton has a value: return the transient variable's (cached) initial value
@@ -1891,154 +976,28 @@ class Network(object):
 	def get_transitions(self, state: State) -> List[Transition]:
 		# Collect all automaton transitions, gathered by label
 		transitions = []
-		trans_process1 = [[], [], [], []]
-		transition_count = self._aut_process1.get_transition_count(state)
+		trans_process1____process2____process3____process4____process5____process6____process7____process8 = [[], [], [], []]
+		transition_count = self._aut_process1____process2____process3____process4____process5____process6____process7____process8.get_transition_count(state)
 		for i in range(transition_count):
-			if self._aut_process1.get_guard_value(state, i):
-				trans_process1[self._aut_process1.get_transition_label(state, i)].append(i)
-		trans_process2 = [[], [], [], []]
-		transition_count = self._aut_process2.get_transition_count(state)
-		for i in range(transition_count):
-			if self._aut_process2.get_guard_value(state, i):
-				trans_process2[self._aut_process2.get_transition_label(state, i)].append(i)
-		trans_process3 = [[], [], [], []]
-		transition_count = self._aut_process3.get_transition_count(state)
-		for i in range(transition_count):
-			if self._aut_process3.get_guard_value(state, i):
-				trans_process3[self._aut_process3.get_transition_label(state, i)].append(i)
-		trans_process4 = [[], [], [], []]
-		transition_count = self._aut_process4.get_transition_count(state)
-		for i in range(transition_count):
-			if self._aut_process4.get_guard_value(state, i):
-				trans_process4[self._aut_process4.get_transition_label(state, i)].append(i)
-		trans_process5 = [[], [], [], []]
-		transition_count = self._aut_process5.get_transition_count(state)
-		for i in range(transition_count):
-			if self._aut_process5.get_guard_value(state, i):
-				trans_process5[self._aut_process5.get_transition_label(state, i)].append(i)
-		trans_process6 = [[], [], [], []]
-		transition_count = self._aut_process6.get_transition_count(state)
-		for i in range(transition_count):
-			if self._aut_process6.get_guard_value(state, i):
-				trans_process6[self._aut_process6.get_transition_label(state, i)].append(i)
-		trans_process7 = [[], [], [], []]
-		transition_count = self._aut_process7.get_transition_count(state)
-		for i in range(transition_count):
-			if self._aut_process7.get_guard_value(state, i):
-				trans_process7[self._aut_process7.get_transition_label(state, i)].append(i)
-		trans_process8 = [[], [], [], []]
-		transition_count = self._aut_process8.get_transition_count(state)
-		for i in range(transition_count):
-			if self._aut_process8.get_guard_value(state, i):
-				trans_process8[self._aut_process8.get_transition_label(state, i)].append(i)
+			if self._aut_process1____process2____process3____process4____process5____process6____process7____process8.get_guard_value(state, i):
+				trans_process1____process2____process3____process4____process5____process6____process7____process8[self._aut_process1____process2____process3____process4____process5____process6____process7____process8.get_transition_label(state, i)].append(i)
 		# Match automaton transitions onto synchronisation vectors
 		for svi in range(len(self.sync_vectors)):
 			sv = self.sync_vectors[svi]
-			synced = [[-1, -1, -1, -1, -1, -1, -1, -1, -1]]
-			# process1
+			synced = [[-1, -1]]
+			# process1 || process2 || process3 || process4 || process5 || process6 || process7 || process8
 			if synced is not None:
 				if sv[0] != -1:
-					if len(trans_process1[sv[0]]) == 0:
+					if len(trans_process1____process2____process3____process4____process5____process6____process7____process8[sv[0]]) == 0:
 						synced = None
 					else:
 						existing = len(synced)
 						for i in range(existing):
-							synced[i][0] = trans_process1[sv[0]][0]
-						for i in range(1, len(trans_process1[sv[0]])):
+							synced[i][0] = trans_process1____process2____process3____process4____process5____process6____process7____process8[sv[0]][0]
+						for i in range(1, len(trans_process1____process2____process3____process4____process5____process6____process7____process8[sv[0]])):
 							for j in range(existing):
 								synced.append(synced[j][:])
-								synced[-1][0] = trans_process1[sv[0]][i]
-			# process2
-			if synced is not None:
-				if sv[1] != -1:
-					if len(trans_process2[sv[1]]) == 0:
-						synced = None
-					else:
-						existing = len(synced)
-						for i in range(existing):
-							synced[i][1] = trans_process2[sv[1]][0]
-						for i in range(1, len(trans_process2[sv[1]])):
-							for j in range(existing):
-								synced.append(synced[j][:])
-								synced[-1][1] = trans_process2[sv[1]][i]
-			# process3
-			if synced is not None:
-				if sv[2] != -1:
-					if len(trans_process3[sv[2]]) == 0:
-						synced = None
-					else:
-						existing = len(synced)
-						for i in range(existing):
-							synced[i][2] = trans_process3[sv[2]][0]
-						for i in range(1, len(trans_process3[sv[2]])):
-							for j in range(existing):
-								synced.append(synced[j][:])
-								synced[-1][2] = trans_process3[sv[2]][i]
-			# process4
-			if synced is not None:
-				if sv[3] != -1:
-					if len(trans_process4[sv[3]]) == 0:
-						synced = None
-					else:
-						existing = len(synced)
-						for i in range(existing):
-							synced[i][3] = trans_process4[sv[3]][0]
-						for i in range(1, len(trans_process4[sv[3]])):
-							for j in range(existing):
-								synced.append(synced[j][:])
-								synced[-1][3] = trans_process4[sv[3]][i]
-			# process5
-			if synced is not None:
-				if sv[4] != -1:
-					if len(trans_process5[sv[4]]) == 0:
-						synced = None
-					else:
-						existing = len(synced)
-						for i in range(existing):
-							synced[i][4] = trans_process5[sv[4]][0]
-						for i in range(1, len(trans_process5[sv[4]])):
-							for j in range(existing):
-								synced.append(synced[j][:])
-								synced[-1][4] = trans_process5[sv[4]][i]
-			# process6
-			if synced is not None:
-				if sv[5] != -1:
-					if len(trans_process6[sv[5]]) == 0:
-						synced = None
-					else:
-						existing = len(synced)
-						for i in range(existing):
-							synced[i][5] = trans_process6[sv[5]][0]
-						for i in range(1, len(trans_process6[sv[5]])):
-							for j in range(existing):
-								synced.append(synced[j][:])
-								synced[-1][5] = trans_process6[sv[5]][i]
-			# process7
-			if synced is not None:
-				if sv[6] != -1:
-					if len(trans_process7[sv[6]]) == 0:
-						synced = None
-					else:
-						existing = len(synced)
-						for i in range(existing):
-							synced[i][6] = trans_process7[sv[6]][0]
-						for i in range(1, len(trans_process7[sv[6]])):
-							for j in range(existing):
-								synced.append(synced[j][:])
-								synced[-1][6] = trans_process7[sv[6]][i]
-			# process8
-			if synced is not None:
-				if sv[7] != -1:
-					if len(trans_process8[sv[7]]) == 0:
-						synced = None
-					else:
-						existing = len(synced)
-						for i in range(existing):
-							synced[i][7] = trans_process8[sv[7]][0]
-						for i in range(1, len(trans_process8[sv[7]])):
-							for j in range(existing):
-								synced.append(synced[j][:])
-								synced[-1][7] = trans_process8[sv[7]][i]
+								synced[-1][0] = trans_process1____process2____process3____process4____process5____process6____process7____process8[sv[0]][i]
 			if synced is not None:
 				for sync in synced:
 					sync[-1] = sv[-1]
@@ -2066,111 +1025,20 @@ class Network(object):
 		return None
 	
 	def get_branches(self, state: State, transition: Transition) -> List[Branch]:
-		combs = [[-1, -1, -1, -1, -1, -1, -1, -1]]
+		combs = [[-1]]
 		probs = [1.0]
 		if transition.transitions[0] != -1:
 			existing = len(combs)
-			branch_count = self._aut_process1.get_branch_count(state, transition.transitions[0])
+			branch_count = self._aut_process1____process2____process3____process4____process5____process6____process7____process8.get_branch_count(state, transition.transitions[0])
 			for i in range(1, branch_count):
-				probability = self._aut_process1.get_probability_value(state, transition.transitions[0], i)
+				probability = self._aut_process1____process2____process3____process4____process5____process6____process7____process8.get_probability_value(state, transition.transitions[0], i)
 				for j in range(existing):
 					combs.append(combs[j][:])
 					combs[-1][0] = i
 					probs.append(probs[j] * probability)
-			probability = self._aut_process1.get_probability_value(state, transition.transitions[0], 0)
+			probability = self._aut_process1____process2____process3____process4____process5____process6____process7____process8.get_probability_value(state, transition.transitions[0], 0)
 			for i in range(existing):
 				combs[i][0] = 0
-				probs[i] *= probability
-		if transition.transitions[1] != -1:
-			existing = len(combs)
-			branch_count = self._aut_process2.get_branch_count(state, transition.transitions[1])
-			for i in range(1, branch_count):
-				probability = self._aut_process2.get_probability_value(state, transition.transitions[1], i)
-				for j in range(existing):
-					combs.append(combs[j][:])
-					combs[-1][1] = i
-					probs.append(probs[j] * probability)
-			probability = self._aut_process2.get_probability_value(state, transition.transitions[1], 0)
-			for i in range(existing):
-				combs[i][1] = 0
-				probs[i] *= probability
-		if transition.transitions[2] != -1:
-			existing = len(combs)
-			branch_count = self._aut_process3.get_branch_count(state, transition.transitions[2])
-			for i in range(1, branch_count):
-				probability = self._aut_process3.get_probability_value(state, transition.transitions[2], i)
-				for j in range(existing):
-					combs.append(combs[j][:])
-					combs[-1][2] = i
-					probs.append(probs[j] * probability)
-			probability = self._aut_process3.get_probability_value(state, transition.transitions[2], 0)
-			for i in range(existing):
-				combs[i][2] = 0
-				probs[i] *= probability
-		if transition.transitions[3] != -1:
-			existing = len(combs)
-			branch_count = self._aut_process4.get_branch_count(state, transition.transitions[3])
-			for i in range(1, branch_count):
-				probability = self._aut_process4.get_probability_value(state, transition.transitions[3], i)
-				for j in range(existing):
-					combs.append(combs[j][:])
-					combs[-1][3] = i
-					probs.append(probs[j] * probability)
-			probability = self._aut_process4.get_probability_value(state, transition.transitions[3], 0)
-			for i in range(existing):
-				combs[i][3] = 0
-				probs[i] *= probability
-		if transition.transitions[4] != -1:
-			existing = len(combs)
-			branch_count = self._aut_process5.get_branch_count(state, transition.transitions[4])
-			for i in range(1, branch_count):
-				probability = self._aut_process5.get_probability_value(state, transition.transitions[4], i)
-				for j in range(existing):
-					combs.append(combs[j][:])
-					combs[-1][4] = i
-					probs.append(probs[j] * probability)
-			probability = self._aut_process5.get_probability_value(state, transition.transitions[4], 0)
-			for i in range(existing):
-				combs[i][4] = 0
-				probs[i] *= probability
-		if transition.transitions[5] != -1:
-			existing = len(combs)
-			branch_count = self._aut_process6.get_branch_count(state, transition.transitions[5])
-			for i in range(1, branch_count):
-				probability = self._aut_process6.get_probability_value(state, transition.transitions[5], i)
-				for j in range(existing):
-					combs.append(combs[j][:])
-					combs[-1][5] = i
-					probs.append(probs[j] * probability)
-			probability = self._aut_process6.get_probability_value(state, transition.transitions[5], 0)
-			for i in range(existing):
-				combs[i][5] = 0
-				probs[i] *= probability
-		if transition.transitions[6] != -1:
-			existing = len(combs)
-			branch_count = self._aut_process7.get_branch_count(state, transition.transitions[6])
-			for i in range(1, branch_count):
-				probability = self._aut_process7.get_probability_value(state, transition.transitions[6], i)
-				for j in range(existing):
-					combs.append(combs[j][:])
-					combs[-1][6] = i
-					probs.append(probs[j] * probability)
-			probability = self._aut_process7.get_probability_value(state, transition.transitions[6], 0)
-			for i in range(existing):
-				combs[i][6] = 0
-				probs[i] *= probability
-		if transition.transitions[7] != -1:
-			existing = len(combs)
-			branch_count = self._aut_process8.get_branch_count(state, transition.transitions[7])
-			for i in range(1, branch_count):
-				probability = self._aut_process8.get_probability_value(state, transition.transitions[7], i)
-				for j in range(existing):
-					combs.append(combs[j][:])
-					combs[-1][7] = i
-					probs.append(probs[j] * probability)
-			probability = self._aut_process8.get_probability_value(state, transition.transitions[7], 0)
-			for i in range(existing):
-				combs[i][7] = 0
 				probs[i] *= probability
 		# Convert to Branch instances
 		for i in range(len(combs)):
@@ -2183,27 +1051,13 @@ class Network(object):
 	
 	def jump(self, state: State, transition: Transition, branch: Branch, expressions: List[int] = []) -> State:
 		transient = self._get_initial_transient()
-		for i in range(-3, 2):
+		for i in range(0, 1):
 			target_state = State()
 			state.copy_to(target_state)
 			target_transient = Transient()
 			transient.copy_to(target_transient)
 			if transition.transitions[0] != -1:
-				self._aut_process1.jump(state, transient, transition.transitions[0], branch.branches[0], i, target_state, target_transient)
-			if transition.transitions[1] != -1:
-				self._aut_process2.jump(state, transient, transition.transitions[1], branch.branches[1], i, target_state, target_transient)
-			if transition.transitions[2] != -1:
-				self._aut_process3.jump(state, transient, transition.transitions[2], branch.branches[2], i, target_state, target_transient)
-			if transition.transitions[3] != -1:
-				self._aut_process4.jump(state, transient, transition.transitions[3], branch.branches[3], i, target_state, target_transient)
-			if transition.transitions[4] != -1:
-				self._aut_process5.jump(state, transient, transition.transitions[4], branch.branches[4], i, target_state, target_transient)
-			if transition.transitions[5] != -1:
-				self._aut_process6.jump(state, transient, transition.transitions[5], branch.branches[5], i, target_state, target_transient)
-			if transition.transitions[6] != -1:
-				self._aut_process7.jump(state, transient, transition.transitions[6], branch.branches[6], i, target_state, target_transient)
-			if transition.transitions[7] != -1:
-				self._aut_process8.jump(state, transient, transition.transitions[7], branch.branches[7], i, target_state, target_transient)
+				self._aut_process1____process2____process3____process4____process5____process6____process7____process8.jump(state, transient, transition.transitions[0], branch.branches[0], i, target_state, target_transient)
 			state = target_state
 			transient = target_transient
 		for i in range(len(expressions)):
