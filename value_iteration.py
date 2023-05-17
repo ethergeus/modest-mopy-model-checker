@@ -2,7 +2,7 @@ import sys
 
 import utils
 
-def _value_iteration(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
+def calculate(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
     # Explore state space using breadth-first search
     if len(model_checker.states) == 0:
         print('Exploring the state space...', end = '', flush = True)

@@ -24,8 +24,8 @@ def state2obs(network, state, onehot_all_vars=False, onehot_vars=[]):
 def onehot(network, state, var):
     # Converts a variable value to a one-hot vector
     # I.e. if the variable has 3 possible values, and the current value is 1, then the one-hot vector is [0, 1, 0]
-    v = network.variables[var]
-    return [state.get_variable_value(var) == i for i in range(v.minValue, v.maxValue + 1)]
+    for i in range(network.variables[var].minValue, network.variables[var].maxValue + 1):
+        yield 1 if state.get_variable_value(var) == i else 0
 
 def precompute_Smin0(network, states, expression: int):
     print('Pre-computing Smin0... ', end = '', flush = True)

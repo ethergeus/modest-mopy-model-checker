@@ -113,17 +113,16 @@ class ModelChecker():
             
             # Perform the actual computation
             if self.args.value_iteration:
-                import value_iteration
-                print(f'{property} = {value_iteration._value_iteration(self, op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
+                import value_iteration as vi
+                print(f'{property} = {vi.calculate(self, op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
             elif self.args.q_learning:
-                import q_learning
-                print(f'{property} = {q_learning._q_learning(self, op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
+                import q_learning as ql
+                print(f'{property} = {ql.learn(self, op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
             elif self.args.deep_q_learning:
-                import deepq_learning
-                print(f'{property} = {deepq_learning._deep_q_learning(self, op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
+                import deepq_learning as dql
+                print(f'{property} = {dql.learn(self, op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
             else:
-                print("Error: No algorithm specified.")
-                quit()
+                raise Exception('No model checking algorithm specified.')
         
         end_time = timer()
 

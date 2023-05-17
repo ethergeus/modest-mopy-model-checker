@@ -2,7 +2,7 @@ import random
 
 import utils
 
-def _q_learning(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
+def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
     if not is_reward:
         return None # Q-learning only works for expected reward properties
 

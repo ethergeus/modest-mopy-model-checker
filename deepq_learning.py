@@ -130,7 +130,7 @@ class DQAgent():
         for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
             target_param.data.copy_(tau * policy_param.data + (1 - tau) * target_param.data)
 
-def _deep_q_learning(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
+def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
     if not is_reward:
         return None # Q-learning only works for expected reward properties
     
