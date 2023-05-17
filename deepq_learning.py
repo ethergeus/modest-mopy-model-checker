@@ -5,7 +5,9 @@ import torch.optim as optim
 import numpy as np
 from collections import namedtuple, deque
 import random
+from timeit import default_timer as timer
 
+import utils
 
 Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state', 'enabled_actions')) # transition tuple
 
@@ -121,3 +123,68 @@ class DQAgent():
         # θ′ ← τ θ + (1 −τ )θ′
         for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
             target_param.data.copy_(tau*policy_param.data + (1.0-tau)*target_param.data)
+
+def _deep_q_learning(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
+    if not is_reward:
+        return None # Q-learning only works for expected reward properties
+    
+    SI = model_checker.network.get_initial_state() # initial state
+    
+    input_dims = [len(utils.state2obs(model_checker.network, SI))]
+    components = model_checker.network.components
+    num_actions = max(*components, key=lambda c: c.transition_counts[0]).transition_counts[0] if len(components) > 1 else components[0].transition_counts[0]
+    agent = DQAgent(gamma=model_checker.args.gamma,
+                    epsilon=model_checker.args.epsilon_start,
+                    alpha=model_checker.args.alpha,
+                    input_dims=input_dims,
+                    num_actions=num_actions,
+                    fc_dims=model_checker.args.fc_dims,
+                    max_mem_size=model_checker.args.max_mem_size,
+                    batch_size=model_checker.args.batch_size,
+                    eps_min=model_checker.args.epsilon_min,
+                    eps_dec=model_checker.args.epsilon_decay,
+                    opt=utils._opt(op),
+                    verbose=model_checker.args.verbose)
+    q_value, loss = 0, 0
+    k = model_checker.args.max_iterations
+    t0 = timer()
+    for run in range(k if k != 0 else model_checker.Q_LEARNING_RUNS):
+        _s = SI # reset state to initial state
+        _obs = utils.state2obs(model_checker.network, _s) # observation of initial state
+
+        if model_checker.args.verbose:
+            t1 = timer()
+            if t1 - t0 > model_checker.PROGRESS_INTERVAL:
+                print(f'Progress: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}', end = '\r', flush = True)
+                t0 = t1
+        
+        while not model_checker.network.get_expression_value(_s, goal_exp):
+            s, obs = _s, _obs # update state and observation
+            A = model_checker.network.get_transitions(s) # possible actions
+            enabled_actions = range(len(A)) # enabled actions
+            action, _ = agent.choose_action(obs, enabled_actions) # choose action index from network
+            a = A[action] # get action from index
+            assert a in A # sanity check, chosen action should be in action space
+            D = model_checker.network.get_branches(s, a) # possible transitions
+            delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
+            reward = [reward_exp]
+            _s = model_checker.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
+            _obs = utils.state2obs(model_checker.network, _s) # get observation from state
+            
+            agent.buffer.push_mdp_tensor(obs, action, reward[0], _obs, enabled_actions) # store transition in replay buffer
+
+            loss = agent.learn() # train agent
+
+            # Soft update of the target network's weights
+            agent.soft_update(model_checker.args.tau)
+
+            # If we have reached a terminal state, break
+            # The only possible transition is to itself, i.e., s' = s (tau loop)
+            if _s == s and len(A) == 1 and len(D) == 1:
+                break # if term(s')
+    
+        _, q_value = agent.choose_action(utils.state2obs(model_checker.network, SI), range(len(model_checker.network.get_transitions(SI))), force_greedy=True)
+    
+    if model_checker.args.verbose:
+        print(f'Finished: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}')
+    return q_value
