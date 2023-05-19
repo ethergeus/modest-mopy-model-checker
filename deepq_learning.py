@@ -87,7 +87,7 @@ class DQAgent():
     def __init__(self, gamma, epsilon, alpha,
                  input_dims, num_actions, fc_dims=[256, 256],
                  max_mem_size=100000, batch_size=64,
-                 eps_min=.01, eps_dec = .995,
+                 eps_min=.01, eps_dec=.995,
                  opt=max,
                  verbose=False,
                  plot=False,
@@ -220,7 +220,7 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
         if model_checker.args.verbose:
             t1 = timer()
             if t1 - t0 > model_checker.PROGRESS_INTERVAL:
-                print(f'Progress: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}', end = '\r', flush = True)
+                print(f'Progress: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}', end='\r', flush=True)
                 t0 = t1
         
         while not model_checker.network.get_expression_value(_s, goal_exp):

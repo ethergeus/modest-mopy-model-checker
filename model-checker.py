@@ -7,7 +7,7 @@ import argparse
 
 class ModelChecker():
     PROGRESS_INTERVAL = 1 # seconds
-    MAX_RELATIVE_ERROR = 1e-6; # maximum relative error for value iteration
+    MAX_RELATIVE_ERROR = 1e-6 # maximum relative error for value iteration
     EPSILON_START = 1.0 # starting epsilon for deep Q-learning
     EPSILON_MIN = 0.1 # ending epsilon for deep Q-learning
     EPSILON_DECAY = 0.9995 # epsilon decay for deep Q-learning
@@ -37,7 +37,7 @@ class ModelChecker():
         parser.add_argument('-p', '--properties', type=str, nargs='+', default=[], help='list of properties to check (default: all)')
         parser.add_argument('--value-iteration', action='store_true', help='use value iteration to evaluate properties')
         parser.add_argument('--relative-error', type=float, default=self.MAX_RELATIVE_ERROR, help=f'maximum relative error for value iteration (default: {self.MAX_RELATIVE_ERROR})')
-        parser.add_argument('-k', '--max-iterations', type=int, default=0, help=f'maximum number of iterations for value iteration, takes precedence over relative error')
+        parser.add_argument('-k', '--max-iterations', type=int, default=0, help='maximum number of iterations for value iteration, takes precedence over relative error (default: no limit)')
         parser.add_argument('--q-learning', action='store_true', help='use Q-learning to evaluate properties')
         parser.add_argument('--epsilon-start', type=float, default=self.EPSILON_START, help=f'initial epsilon (exploration probability) (default: {self.EPSILON_START})')
         parser.add_argument('--epsilon-min', type=float, default=self.EPSILON_MIN, help=f'minimum epsilon (exploration probability) (default: {self.EPSILON_MIN})')
@@ -137,7 +137,7 @@ class ModelChecker():
             t1 = timer()
             if t1 - t0 > self.PROGRESS_INTERVAL:
                 # print progress every PROGRESS_INTERVAL seconds
-                print(f' {int(len(explored) / 1000)}k..', end = '', flush = True)
+                print(f' {int(len(explored) / 1000)}k..', end='', flush=True)
                 t0 = t1
             found = False # reset flag
             for s in explored:
