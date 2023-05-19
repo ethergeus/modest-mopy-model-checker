@@ -83,7 +83,7 @@ class DQNetwork(nn.Module):
 
 
 class DQAgent():
-    PUNISHMENT = -1e6 # punishment for invalid actions
+    PUNISHMENT = 1 # punishment for invalid actions
 
     def __init__(self, gamma, epsilon, alpha,
                  input_dims, num_actions, fc_dims=[256, 256],
@@ -152,16 +152,18 @@ class DQAgent():
         disabled_actions_mask = T.tensor(tuple(map(lambda a: tuple([i not in a for i in range(self.num_actions)]), batch.enabled_actions)), dtype=T.bool, device=self.device) # mask of disabled actions (n x num_actions)
         state_action_values = self.policy_net(state_batch).gather(1, action_batch) # get Q values for all actions taken in batch (n x 1)
         with T.no_grad():
-            target_eval = self.target_net(next_state_batch) # get Q values for all actions in next state (n x num_actions)
+            q_values = self.target_net(next_state_batch) # get Q values for all actions in next state (n x num_actions)
             # Filter out disabled actions
             if self.ignore_invalid:
                 # Make disabled actions have unattractive Q values
-                target_eval[disabled_actions_mask] = -np.inf if self.opt == max else np.inf # set disabled actions to -inf if max opt, inf if min opt
-            next_state_values = self.torch_opt(target_eval, 1)[0] # get optimal Q values of all actions in next state (n x 1)
-        if self.punish_invalid:
-            pass # TODO: implement punishment for invalid actions
+                q_values[disabled_actions_mask] = -np.inf if self.opt == max else np.inf # set disabled actions to -inf if max opt, inf if min opt
+            actions = self.torch_argopt(q_values, 1) # get optimal Q values of all actions in next state (n x 1)
+        next_state_values = q_values.gather(1, actions.view(-1, 1)).view(-1)
         expected_state_action_values = (next_state_values * self.gamma) + reward_batch # calculate expected state action values
         loss = self.loss(state_action_values, expected_state_action_values.unsqueeze(1)) # calculate loss
+        if self.punish_invalid:
+            illegal = T.stack([disabled_actions_mask[i][a] for i, a in enumerate(actions)])
+            loss += T.mean(illegal.type(T.float32)) * self.PUNISHMENT
         self.optimizer.zero_grad() # zero gradients
         loss.backward() # backpropagate loss
         self.optimizer.step() # update parameters
