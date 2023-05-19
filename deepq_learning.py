@@ -36,18 +36,19 @@ class Results(object):
         plt.show()
 
 class ReplayBuffer(object):
-    def __init__(self, maxlen=100000) -> None:
+    def __init__(self, device, maxlen=100000) -> None:
+        self.device = device
         self.buffer = deque([], maxlen=maxlen)
     
     def push(self, *args):
         self.buffer.append(Transition(*args))
     
     def push_mdp_tensor(self, obs, action, reward, _obs, enabled_actions):
-        obs = T.tensor(obs, dtype=T.float32).unsqueeze(0)
-        action = T.tensor([[action]], dtype=T.long)
-        reward = T.tensor([reward], dtype=T.float32)
-        _obs = T.tensor(_obs, dtype=T.float32).unsqueeze(0)
-        enabled_actions = T.tensor(enabled_actions, dtype=T.float32)
+        obs = T.tensor(obs, dtype=T.float32, device=self.device).unsqueeze(0)
+        action = T.tensor([[action]], dtype=T.long, device=self.device)
+        reward = T.tensor([reward], dtype=T.float32, device=self.device)
+        _obs = T.tensor(_obs, dtype=T.float32, device=self.device).unsqueeze(0)
+        enabled_actions = T.tensor(enabled_actions, dtype=T.float32, device=self.device)
         self.push(obs, action, reward, _obs, enabled_actions)
     
     def sample(self, batch_size):
@@ -64,10 +65,10 @@ class DQNetwork(nn.Module):
         self.num_actions = num_actions # number of actions
         self.input_dims = input_dims # list of input dimensions
         self.fc_dims = fc_dims # list of fully connected layer dimensions
-        self.activation = nn.Sigmoid() # activation function for fully connected layers
+        self.activation = nn.ReLU() # activation function for fully connected layers
 
         # Define layers
-        self.fc = [nn.Linear(*self.input_dims, self.fc_dims[0])] # first fully connected layer
+        self.fc = nn.ModuleList([nn.Linear(*self.input_dims, self.fc_dims[0])]) # first fully connected layer
         for i in range(1, len(self.fc_dims)):
             # Add fully connected layers
             self.fc.append(nn.Linear(self.fc_dims[i-1], self.fc_dims[i]))
@@ -121,16 +122,16 @@ class DQAgent():
         self.policy_net = DQNetwork(input_dims=input_dims, fc_dims=fc_dims, num_actions=num_actions).to(self.device) # policy network
         self.target_net = DQNetwork(input_dims=input_dims, fc_dims=fc_dims, num_actions=num_actions).to(self.device) # target network
         self.target_net.load_state_dict(self.policy_net.state_dict()) # copy policy network weights to target network
-        self.parameters = nn.ModuleList(self.policy_net.fc).parameters() # list of parameters for all layers
-        self.optimizer = optim.SGD(self.parameters, lr=alpha) # Adam optimizer
-        self.buffer = ReplayBuffer(max_mem_size) # replay buffer
+        self.parameters = self.policy_net.parameters() # list of parameters for all layers
+        self.optimizer = optim.AdamW(self.parameters, lr=alpha, amsgrad=True) # AdamW optimizer
+        self.buffer = ReplayBuffer(self.device, max_mem_size) # replay buffer
         self.loss = nn.SmoothL1Loss() # Huber loss
 
     def choose_action(self, observation, enabled_actions, force_greedy=False):
         if force_greedy or random.uniform(0, 1) > self.epsilon:
             # Choose action greedily (exploit)
             with T.no_grad():
-                state = T.tensor(observation, dtype=T.float32).to(self.device)
+                state = T.tensor(observation, dtype=T.float32, device=self.device)
                 q_values = self.policy_net(state)[enabled_actions] # get Q values for all actions
                 action = self.torch_argopt(q_values).item() # choose action with highest Q value
                 return enabled_actions[action], q_values[action]
@@ -148,7 +149,7 @@ class DQAgent():
         action_batch = T.cat(batch.action) # concatenate actions (n x 1)
         reward_batch = T.cat(batch.reward) # concatenate rewards (n x 1)
         next_state_batch = T.cat(batch.next_state) # concatenate next states (n x state_dim)
-        disabled_actions_mask = T.tensor(tuple(map(lambda a: tuple([i not in a for i in range(self.num_actions)]), batch.enabled_actions)), dtype=T.bool).to(self.device) # mask of disabled actions (n x num_actions)
+        disabled_actions_mask = T.tensor(tuple(map(lambda a: tuple([i not in a for i in range(self.num_actions)]), batch.enabled_actions)), dtype=T.bool, device=self.device) # mask of disabled actions (n x num_actions)
         state_action_values = self.policy_net(state_batch).gather(1, action_batch) # get Q values for all actions taken in batch (n x 1)
         with T.no_grad():
             target_eval = self.target_net(next_state_batch) # get Q values for all actions in next state (n x num_actions)
