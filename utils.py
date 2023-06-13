@@ -1,5 +1,3 @@
-import itertools
-
 def _opt(op: str):
     if op.find('min') != -1:
         return min

@@ -16,11 +16,11 @@ class ModelChecker():
     Q_LEARNING_DISCOUNT = 1 # gamma for Q-learning
     Q_LEARNING_RUNS = 10000 # number of runs for Q-learning
     MAX_MEM_SIZE = 100000 # maximum memory size for deep Q-learning
-    BATCH_SIZE = 16 # batch size for deep Q-learning
+    BATCH_SIZE = 64 # batch size for deep Q-learning
     TAU = 0.01 # tau for soft target network updates
-    FC_DIMS = [256, 512, 256] # fully connected layer dimensions for deep Q-learning
-    ONEHOT_ALL = False # whether to use one-hot encoding for states
-    ONEHOT = ['state'] # variables to use one-hot encoding for
+    FC_DIMS = [512, 512, 512] # fully connected layer dimensions for deep Q-learning
+    ONEHOT_ALL = True # whether to use one-hot encoding for states
+    ONEHOT = [] # variables to use one-hot encoding for
 
     def __init__(self, arguments) -> None:
         # Load the model
@@ -51,10 +51,8 @@ class ModelChecker():
         parser.add_argument('--batch-size', type=int, default=self.BATCH_SIZE, help=f'batch size for training (default: {self.BATCH_SIZE})')
         parser.add_argument('--tau', type=float, default=self.TAU, help=f'tau for soft target network updates (default: {self.TAU})')
         parser.add_argument('--fc-dims', type=int, nargs='+', default=self.FC_DIMS, help=f'dimensions of the fully connected layers (default: {self.FC_DIMS})')
-        parser.add_argument('--onehot-all', action='store_true', help='use one-hot encoding for all variables')
+        parser.add_argument('--onehot-all', action='store_true', default=self.ONEHOT_ALL, help='use one-hot encoding for all variables')
         parser.add_argument('--onehot', type=str, nargs='+', default=self.ONEHOT, help=f'variables to use one-hot encoding for (default: {self.ONEHOT})')
-        parser.add_argument('--punish-invalid', action='store_true', help='punish the agent for taking actions that are not in the model')
-        parser.add_argument('--ignore-invalid', action='store_true', help='ignore invalid actions instead of punishing the agent for taking them')
 
         parser.add_argument('--verbose', '-v', action='store_true', help='print progress information when available')
         parser.add_argument('--plot', action='store_true', help='plot the results')
