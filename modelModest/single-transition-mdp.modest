@@ -1,0 +1,17 @@
+action a;
+
+int(0..1) state = 0;
+const int CHOOSE = 0, SUCCESS = 1;
+
+property P1 = Pmax(<> (state == SUCCESS));
+
+int(0..8) reward = 0;
+property R1 = Xmax(S(reward), state == SUCCESS);
+property R2 = Xmin(S(reward), state == SUCCESS);
+
+do {
+:: //when(state == CHOOSE)
+   a palt {
+      :1: {= state = SUCCESS, reward = 8 =}
+   }
+}
