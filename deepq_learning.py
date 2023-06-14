@@ -16,6 +16,7 @@ class Observation():
         self.network = model_checker.network # MDP model network
         self.onehot_all = model_checker.args.onehot_all # encode all bounded variables one-hot
         self.onehot = model_checker.args.onehot # encode certain variables one-hot
+        self.ignore = model_checker.args.ignore # ignore certain variables in encoding
         self.data = list(self._obs(state))
     
     def _loc(self, state):
@@ -30,6 +31,8 @@ class Observation():
         variables = self.network.variables
         
         for var in range(len(variables)):
+            if variables[var].name in self.ignore:
+                continue
             if variables[var].minValue is not None and variables[var].maxValue is not None and (self.onehot_all or variables[var].name in self.onehot):
                 yield from self._onehot(state, variables, var)
             else:
@@ -43,17 +46,26 @@ class Observation():
     def _onehot(self, state, variables, var):
         for i in range(variables[var].minValue, variables[var].maxValue + 1):
             yield state.get_variable_value(var) == i
+    
+    def __len__(self):
+        return len(self.data)
 
 class Action():
-    def __init__(self, model_checker, action=None):
+    def __init__(self, model_checker, transitions=None):
         self.network = model_checker.network
-        self.data = [False] * sum([sum(component.transition_counts) for component in self.network.components]) if action is None else list(self._act(action))
+        self.data = [False] * sum([sum(component.transition_counts) for component in self.network.components]) if transitions is None else list(self._act(transitions))
     
-    def _act(self, action):
+    def _act(self, transitions):
         for i, component in enumerate(self.network.components):
             k = max(component.transition_counts)
             for j in range(k):
-                yield action[i] == j
+                yield transitions[i] == j
+    
+    def __eq__(self, other):
+        return self.data == other.data
+    
+    def __len__(self):
+        return len(self.data)
 
 class Results(object):
     def __init__(self, maxlen=100000):
@@ -84,17 +96,14 @@ class ReplayBuffer(object):
         self.device = device
         self.buffer = deque([], maxlen=maxlen)
     
-    def push(self, *args):
-        self.buffer.append(Transition(*args))
-    
-    def push_mdp_tensor(self, state, action, reward, next_state, next_enabled_actions, goal_state):
-        state = T.tensor([state], dtype=T.float32, device=self.device)
-        action = T.tensor([action], dtype=T.float32, device=self.device)
+    def push(self, state, action, reward, next_state, next_enabled_actions, goal_state):
+        state = T.tensor([state.data], dtype=T.float32, device=self.device)
+        action = T.tensor([action.data], dtype=T.float32, device=self.device)
         reward = T.tensor([reward], dtype=T.float32, device=self.device)
-        next_state = T.tensor([next_state], dtype=T.float32, device=self.device)
-        next_enabled_actions = T.tensor(next_enabled_actions, dtype=T.float32, device=self.device)
+        next_state = T.tensor([next_state.data], dtype=T.float32, device=self.device)
+        next_enabled_actions = T.tensor([action.data for action in next_enabled_actions], dtype=T.float32, device=self.device)
         goal_state = T.tensor([goal_state], dtype=T.bool, device=self.device)
-        self.push(state, action, reward, next_state, next_enabled_actions, goal_state)
+        self.buffer.append(Transition(state, action, reward, next_state, next_enabled_actions, goal_state))
     
     def sample(self, batch_size):
         return random.sample(self.buffer, batch_size)
@@ -162,8 +171,8 @@ class DQAgent():
 
     def select_action(self, obs, enabled_actions, greedy=False):
         if greedy or random.uniform(0, 1) > self.epsilon:
-            state = T.tensor([obs] * len(enabled_actions), dtype=T.float32, device=self.device)
-            actions = T.tensor(enabled_actions, dtype=T.float32, device=self.device)
+            state = T.tensor([obs.data] * len(enabled_actions), dtype=T.float32, device=self.device)
+            actions = T.tensor([action.data for action in enabled_actions], dtype=T.float32, device=self.device)
             with T.no_grad():
                 q_values = self.policy_net(T.cat((state, actions), dim=1)) # concatenate state-action pairs
             opt = self.torch_argopt(q_values) # get index of optimal action
@@ -201,9 +210,12 @@ class DQAgent():
         loss.backward()
         self.optimizer.step()
         
-        self.epsilon = self.epsilon * self.eps_dec if self.epsilon > self.eps_min else self.eps_min # decay exploration rate
+        self.epsilon_decay(self.eps_dec)
         
         return loss.item()
+    
+    def epsilon_decay(self, decay):
+        self.epsilon = max(self.epsilon * decay, self.eps_min) # decay exploration rate
     
     def soft_update(self, tau):
         # Soft update target network parameters
@@ -219,10 +231,8 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
         results = Results()
     
     SI = model_checker.network.get_initial_state() # initial state
-        
-    obs = Observation(model_checker, SI).data
-    act = Action(model_checker).data
-    input_dims = [len(obs + act)]
+    
+    input_dims = [len(Observation(model_checker, SI)) + len(Action(model_checker))]
     
     # Deep Q-learning agent
     agent = DQAgent(gamma=model_checker.args.gamma,
@@ -246,24 +256,23 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
     t0 = timer()
     for run in range(k if k != 0 else model_checker.Q_LEARNING_RUNS):
         _s = SI # reset state to initial state
-        _obs = Observation(model_checker, _s).data # observation of initial state
+        _obs = Observation(model_checker, _s) # observation of initial state
 
         if model_checker.args.plot:
             results.push(q_value, loss)
         if model_checker.args.verbose:
             t1 = timer()
             if t1 - t0 > model_checker.PROGRESS_INTERVAL:
-                print(f'Progress: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}', end='\r', flush=True)
+                print(f'Progress: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}{" " * 16}', end='\r', flush=True)
                 t0 = t1
         
         goal_state, self_loop, deadlock = False, False, False
         while not goal_state and not self_loop and not deadlock:
             s, obs = _s, _obs # update state and observation
             A = model_checker.network.get_transitions(s) # possible actions
-            enabled_actions = [Action(model_checker, a.transitions).data for a in A] # enabled actions
+            enabled_actions = [Action(model_checker, a.transitions) for a in A] # enabled actions
             action, _ = agent.select_action(obs, enabled_actions) # choose action from network
-            a = next(a for a in A if Action(model_checker, a.transitions).data == action) # get action
-            assert a in A # sanity check, chosen action should be in action space
+            a = next(a for a in A if Action(model_checker, a.transitions) == action) # get action
             D = model_checker.network.get_branches(s, a) # possible transitions
             delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
             reward = [reward_exp]
@@ -273,19 +282,19 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
             self_loop = _s == s and len(A) == 1 and len(D) == 1 # the only possible transition is to itself, i.e., s' = s (tau loop)
             deadlock = len(model_checker.network.get_transitions(_s)) == 0 # the number of outgoing transitions from s' = 0 (deadlock)
 
-            _obs = Observation(model_checker, _s).data # get observation from state
+            _obs = Observation(model_checker, _s) # get observation from state
 
-            agent.buffer.push_mdp_tensor(obs, Action(model_checker, action).data, reward[0], _obs, enabled_actions, goal_state) # store transition in replay buffer
+            agent.buffer.push(obs, action, reward[0], _obs, enabled_actions, goal_state) # store transition in replay buffer
 
             loss = agent.optimize_model() # train agent
 
             # Soft update of the target network's weights
             agent.soft_update(model_checker.args.tau)
         
-        _, q_value = agent.select_action(Observation(model_checker, SI).data, [Action(model_checker, a.transitions).data for a in model_checker.network.get_transitions(SI)], greedy=True)
+        _, q_value = agent.select_action(Observation(model_checker, SI), [Action(model_checker, a.transitions) for a in model_checker.network.get_transitions(SI)], greedy=True)
     
     if model_checker.args.verbose:
-        print(f'Finished: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}')
+        print(f'Finished: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}{" " * 16}')
     if model_checker.args.plot:
         results.push(q_value, loss)
         results.plot()

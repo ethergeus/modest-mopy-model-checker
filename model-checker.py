@@ -17,10 +17,11 @@ class ModelChecker():
     Q_LEARNING_RUNS = 10000 # number of runs for Q-learning
     MAX_MEM_SIZE = 100000 # maximum memory size for deep Q-learning
     BATCH_SIZE = 64 # batch size for deep Q-learning
-    TAU = 0.01 # tau for soft target network updates
+    TAU = 1 # tau for soft target network updates
     FC_DIMS = [512, 512, 512] # fully connected layer dimensions for deep Q-learning
     ONEHOT_ALL = True # whether to use one-hot encoding for states
     ONEHOT = [] # variables to use one-hot encoding for
+    IGNORE = [] # variables to ignore when encoding
 
     def __init__(self, arguments) -> None:
         # Load the model
@@ -53,6 +54,7 @@ class ModelChecker():
         parser.add_argument('--fc-dims', type=int, nargs='+', default=self.FC_DIMS, help=f'dimensions of the fully connected layers (default: {self.FC_DIMS})')
         parser.add_argument('--onehot-all', action='store_true', default=self.ONEHOT_ALL, help='use one-hot encoding for all variables')
         parser.add_argument('--onehot', type=str, nargs='+', default=self.ONEHOT, help=f'variables to use one-hot encoding for (default: {self.ONEHOT})')
+        parser.add_argument('--ignore', type=str, nargs='+', default=self.IGNORE, help=f'variables to ignore when encoding the state-space (default: {self.IGNORE})')
 
         parser.add_argument('--verbose', '-v', action='store_true', help='print progress information when available')
         parser.add_argument('--plot', action='store_true', help='plot the results')
