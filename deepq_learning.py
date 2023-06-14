@@ -193,7 +193,7 @@ class DQAgent():
         goal_state_mask = T.cat(batch.goal_state)
         
         with T.no_grad():
-            next_state_values = T.stack([self.torch_opt(self.target_net(T.cat((state.repeat(len(actions), 1), actions), dim=1))) for state, actions in zip(batch.next_state, batch.next_enabled_actions)])
+            next_state_values = T.stack([T.tensor(0, dtype=T.float32, device=self.device) if len(actions) == 0 else self.torch_opt(self.target_net(T.cat((state.repeat(len(actions), 1), actions), dim=1))) for state, actions in zip(batch.next_state, batch.next_enabled_actions)])
         
         next_state_values[goal_state_mask] = 0 # Q value for goal state is zero
 
@@ -277,17 +277,19 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
             delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
             reward = [reward_exp]
             _s = model_checker.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
+            _A = model_checker.network.get_transitions(_s)
+            next_enabled_actions = [Action(model_checker, a.transitions) for a in _A]
             
             goal_state = model_checker.network.get_expression_value(_s, goal_exp) # we reached a goal state (Q := 0)
             self_loop = _s == s and len(A) == 1 and len(D) == 1 # the only possible transition is to itself, i.e., s' = s (tau loop)
-            deadlock = len(model_checker.network.get_transitions(_s)) == 0 # the number of outgoing transitions from s' = 0 (deadlock)
-
+            deadlock = len(_A) == 0 # the number of outgoing transitions from s' = 0 (deadlock)
+            
             _obs = Observation(model_checker, _s) # get observation from state
-
-            agent.buffer.push(obs, action, reward[0], _obs, enabled_actions, goal_state) # store transition in replay buffer
-
+            
+            agent.buffer.push(obs, action, reward[0], _obs, next_enabled_actions, goal_state) # store transition in replay buffer
+            
             loss = agent.optimize_model() # train agent
-
+            
             # Soft update of the target network's weights
             agent.soft_update(model_checker.args.tau)
         
