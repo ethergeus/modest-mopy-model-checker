@@ -48,19 +48,24 @@ class Observation():
         for i in range(variables[var].minValue, variables[var].maxValue + 1):
             yield state.get_variable_value(var) == i
     
+    def __eq__(self, other):
+        return self.data == other.data
+    
     def __len__(self):
         return len(self.data)
 
 class Action():
-    def __init__(self, model_checker, transitions=None):
+    def __init__(self, model_checker, transition):
         self.network = model_checker.network
-        self.data = [False] * sum([sum(component.transition_counts) for component in self.network.components]) if transitions is None else list(self._act(transitions))
+        self.data = list(self._act(transition))
     
-    def _act(self, transitions):
+    def _act(self, transition):
         for i, component in enumerate(self.network.components):
-            k = max(component.transition_counts)
-            for j in range(k):
-                yield transitions[i] == j
+            for label in self.network.transition_labels.keys():
+                yield transition.label == label
+            t = max(component.transition_counts)
+            for j in range(t):
+                yield transition.transitions[i] == j
     
     def __eq__(self, other):
         return self.data == other.data
@@ -119,21 +124,20 @@ class DQNetwork(nn.Module):
     def __init__(self, input_dims, fc_dims):
         super(DQNetwork, self).__init__()
 
-        # Action space, used to map actions to indices of output layer
         self.input_dims = input_dims # list of input dimensions
         self.fc_dims = fc_dims # list of fully connected layer dimensions
 
         # Define layers
         input_layer = nn.Linear(*self.input_dims, self.fc_dims[0])
-        nn.init.kaiming_uniform_(input_layer.weight)
+        # nn.init.kaiming_uniform_(input_layer.weight)
         self.fc = nn.ModuleList([input_layer]) # first fully connected layer
         for i in range(1, len(self.fc_dims)):
             # Add fully connected layers between input and output layers
             layer = nn.Linear(self.fc_dims[i-1], self.fc_dims[i])
-            nn.init.kaiming_uniform_(layer.weight)
+            # nn.init.kaiming_uniform_(layer.weight)
             self.fc.append(layer)
         output_layer = nn.Linear(self.fc_dims[-1], 1)
-        nn.init.kaiming_uniform_(output_layer.weight)
+        # nn.init.kaiming_uniform_(output_layer.weight)
         self.fc.append(output_layer) # output layer
     
     def forward(self, x):
@@ -251,7 +255,9 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
     
     SI = model_checker.network.get_initial_state() # initial state
     
-    input_dims = [len(Observation(model_checker, SI)) + len(Action(model_checker))]
+    obs_dim = len(Observation(model_checker, SI)) # dimension of observation encoding
+    act_dim = len(Action(model_checker, random.choice(model_checker.network.get_transitions(SI)))) # dimension of action encoding
+    input_dims = [obs_dim + act_dim]
     
     # Deep Q-learning agent
     agent = DQAgent(gamma=model_checker.args.gamma,
@@ -290,15 +296,15 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
         while not goal_state and not self_loop and not deadlock:
             s, obs = _s, _obs # update state and observation
             A = model_checker.network.get_transitions(s) # possible actions
-            enabled_actions = [Action(model_checker, a.transitions) for a in A] # enabled actions
+            enabled_actions = [Action(model_checker, a) for a in A] # enabled actions
             action, _ = agent.select_action(obs, enabled_actions) # choose action from network
-            a = next(a for a in A if Action(model_checker, a.transitions) == action) # get action
+            a = next(a for a in A if Action(model_checker, a) == action) # get action
             D = model_checker.network.get_branches(s, a) # possible transitions
             delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
             reward = [reward_exp]
             _s = model_checker.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
             _A = model_checker.network.get_transitions(_s)
-            next_enabled_actions = [Action(model_checker, a.transitions) for a in _A]
+            next_enabled_actions = [Action(model_checker, a) for a in _A]
             
             goal_state = model_checker.network.get_expression_value(_s, goal_exp) # we reached a goal state (Q := 0)
             self_loop = _s == s and len(A) == 1 and len(D) == 1 # the only possible transition is to itself, i.e., s' = s (tau loop)
@@ -314,7 +320,7 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
             if model_checker.args.double_q:
                 agent.soft_update(model_checker.args.tau)
         
-        _, q_value = agent.select_action(Observation(model_checker, SI), [Action(model_checker, a.transitions) for a in model_checker.network.get_transitions(SI)], greedy=True)
+        _, q_value = agent.select_action(Observation(model_checker, SI), [Action(model_checker, a) for a in model_checker.network.get_transitions(SI)], greedy=True)
     
     if model_checker.args.verbose:
         print(f'Finished: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}{" " * 16}')
