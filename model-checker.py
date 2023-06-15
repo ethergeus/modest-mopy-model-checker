@@ -15,11 +15,12 @@ class ModelChecker():
     Q_LEARNING_RATE = 0.1 # alpha for Q-learning
     Q_LEARNING_DISCOUNT = 1 # gamma for Q-learning
     Q_LEARNING_RUNS = 10000 # number of runs for Q-learning
+    DOUBLE_Q = False # whether to use double deep Q learning using a separate target and policy network
     MAX_MEM_SIZE = 100000 # maximum memory size for deep Q-learning
     BATCH_SIZE = 64 # batch size for deep Q-learning
     TAU = 1 # tau for soft target network updates
     FC_DIMS = [512, 512, 512] # fully connected layer dimensions for deep Q-learning
-    ONEHOT_ALL = True # whether to use one-hot encoding for states
+    ONEHOT_ALL = False # whether to use one-hot encoding for states
     ONEHOT = [] # variables to use one-hot encoding for
     IGNORE = [] # variables to ignore when encoding
 
@@ -48,6 +49,7 @@ class ModelChecker():
 
         # Deep Q-learning parameters
         parser.add_argument('--deep-q-learning', action='store_true', help='use deep Q-learning to evaluate properties')
+        parser.add_argument('--double-q', action='store_true', help='apply double deep Q learning using a separate target and policy network')
         parser.add_argument('--max-mem-size', type=int, default=self.MAX_MEM_SIZE, help=f'maximum size of the replay memory (default: {self.MAX_MEM_SIZE})')
         parser.add_argument('--batch-size', type=int, default=self.BATCH_SIZE, help=f'batch size for training (default: {self.BATCH_SIZE})')
         parser.add_argument('--tau', type=float, default=self.TAU, help=f'tau for soft target network updates (default: {self.TAU})')
