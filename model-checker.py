@@ -61,6 +61,7 @@ class ModelChecker():
         parser.add_argument('--verbose', '-v', action='store_true', help='print progress information when available')
         parser.add_argument('--plot', action='store_true', help='plot the results')
         parser.add_argument('--table', action='store_true', help='Deep Q-learning output layer represents a table of Q-values instead of a single Q-value')
+        parser.add_argument('--note', type=str, default='defaults', help='note to add to plot and pickle output file')
 
         self.args = parser.parse_args()
 
@@ -124,7 +125,7 @@ class ModelChecker():
                 print(f'{property} = {ql.learn(self, op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
             elif self.args.deep_q_learning:
                 import deepq_learning as dql
-                print(f'{property} = {dql.learn(self, op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
+                print(f'{property} = {dql.learn(self, property.name, op, is_prob, is_reach, is_reward, goal_exp, reward_exp)}')
             else:
                 raise Exception('No model checking algorithm specified.')
         

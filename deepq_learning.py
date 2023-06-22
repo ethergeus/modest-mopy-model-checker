@@ -8,6 +8,8 @@ from timeit import default_timer as timer
 import matplotlib.pyplot as plt
 import os
 import numpy as np
+import pickle
+from pathlib import Path
 
 import utils
 
@@ -43,7 +45,7 @@ class Observation():
         locations = list(self._loc(state))
         for i, component in enumerate(self.network.components):
             for location in range(len(component.transition_counts)):
-                yield locations[i] == location
+                yield locations[i] == location # returns the one-hot encoded variable location
     
     def _onehot(self, state, variables, var):
         # Encode a variable as one-hot, i.e., a variable with range 0..4 and value 1 is encoded as [False, True, False, False]
@@ -83,31 +85,38 @@ class Action():
         return len(self.data)
 
 class Results(object):
-    def __init__(self, maxlen=100000):
+    def __init__(self, model, prop, note, maxlen=100000):
         self.q_value = deque([], maxlen=maxlen)
         self.loss = deque([], maxlen=maxlen)
+        self.model = model
+        self.prop = prop
+        self.note = note
     
     def push(self, q_values, loss):
         self.q_value.append(q_values)
         self.loss.append(loss)
     
-    def plot(self):
+    def plot(self, save=False):
+        prefix = f'{self.model}-{self.prop}-{self.note}'
+        
         plt.figure()
-        plt.title(f'Q-values over time (answer: Q = {np.mean(np.array(self.q_value)[-11:-1])})')
+        plt.title(f'Q-values over time (answer: Q = {np.mean(np.array(self.q_value)[-201:-1]):.2f})')
         plt.xlabel('Iterations')
         plt.ylabel('Q-value')
-        plt.plot(self.q_value, marker='.', linestyle='')
+        ax = plt.plot(self.q_value, marker='.', linestyle='')
         plt.yscale('log')
-        plt.savefig(os.path.join('plot', 'q_values.pdf'))
+        plt.savefig(os.path.join('plot', f'{prefix}-q.pdf'))
         plt.show()
+        pickle.dump(ax, open(os.path.join('data', f'{prefix}-q.pickle'), 'wb'))
         
         plt.figure()
         plt.title('Loss over time')
         plt.xlabel('Iterations')
         plt.ylabel('Loss')
-        plt.plot(self.loss, marker='.', linestyle='')
-        plt.savefig(os.path.join('plot', 'loss.pdf'))
+        ax = plt.plot(self.loss, marker='.', linestyle='')
+        plt.savefig(os.path.join('plot', f'{prefix}-loss.pdf'))
         plt.show()
+        pickle.dump(ax, open(os.path.join('data', f'{prefix}-loss.pickle'), 'wb'))
 
 class ReplayBuffer(object):
     def __init__(self, device, maxlen=100000):
@@ -272,12 +281,12 @@ class DQAgent():
         for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
             target_param.data.copy_(tau * policy_param.data + (1 - tau) * target_param.data)
 
-def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
+def learn(model_checker, prop, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
     if not is_reward:
         return None # Q-learning only works for expected reward properties
     
     if model_checker.args.plot:
-        results = Results()
+        results = Results(Path(model_checker.args.model).stem, prop, model_checker.args.note)
     
     SI = model_checker.network.get_initial_state() # initial state
     A0 = model_checker.network.get_transitions(SI) # initial transitions
