@@ -1,0 +1,30 @@
+action s, r;
+
+int(0..4) state = 0;
+const int CHOOSE = 0, SAFE = 1, RISK = 2, SUCCESS = 3, FAIL = 4;
+
+property P1 = Pmax(<> (state == SUCCESS));
+property P2 = Pmax(<> (state == FAIL));
+
+int(0..8) reward = 0;
+property R1 = Xmax(S(reward), state == SUCCESS || state == FAIL);
+property R2 = Xmin(S(reward), state == SUCCESS || state == FAIL);
+
+do {
+:: when(state == CHOOSE)
+   s {= state = SAFE, reward = 0 =}
+:: when(state == CHOOSE)
+   r {= state = RISK, reward = 0 =}
+:: when(state == SAFE)
+   tau palt {
+	:9: {= state = SUCCESS, reward = 2 =}
+	:1: {= state = FAIL, reward = 0 =}
+	}
+:: when(state == RISK)
+   tau palt {
+	:5: {= state = SUCCESS, reward = 8 =}
+	:5: {= state = FAIL, reward = 0 =}
+	}
+:: when(state == SUCCESS || state == FAIL)
+   tau {= reward = 0 =}
+}
