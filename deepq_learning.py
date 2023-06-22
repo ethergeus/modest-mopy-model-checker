@@ -6,6 +6,8 @@ from collections import namedtuple, deque
 import random
 from timeit import default_timer as timer
 import matplotlib.pyplot as plt
+import os
+import numpy as np
 
 import utils
 
@@ -55,9 +57,11 @@ class Observation():
         return len(self.data)
 
 class Action():
-    def __init__(self, model_checker, transition):
+    def __init__(self, model_checker, transition, enabled_transitions, output_dim):
         self.network = model_checker.network
-        self.data = list(self._act(transition))
+        self.n = output_dim
+        self.t = transition.transitions
+        self.data = self._modulo_act(transition, enabled_transitions) if model_checker.args.table else list(self._act(transition))
     
     def _act(self, transition):
         for i, component in enumerate(self.network.components):
@@ -67,8 +71,13 @@ class Action():
             for j in range(t):
                 yield transition.transitions[i] == j
     
+    def _modulo_act(self, transition, enabled_transitions):
+        t = enabled_transitions.index(transition)
+        k = len(enabled_transitions)
+        return [random.choice(range(t, self.n, k))]
+    
     def __eq__(self, other):
-        return self.data == other.data
+        return self.t == other.t
     
     def __len__(self):
         return len(self.data)
@@ -84,10 +93,12 @@ class Results(object):
     
     def plot(self):
         plt.figure()
-        plt.title('Q-values over time')
+        plt.title(f'Q-values over time (answer: Q = {np.mean(np.array(self.q_value)[-11:-1])})')
         plt.xlabel('Iterations')
         plt.ylabel('Q-value')
         plt.plot(self.q_value, marker='.', linestyle='')
+        plt.yscale('log')
+        plt.savefig(os.path.join('plot', 'q_values.pdf'))
         plt.show()
         
         plt.figure()
@@ -95,6 +106,7 @@ class Results(object):
         plt.xlabel('Iterations')
         plt.ylabel('Loss')
         plt.plot(self.loss, marker='.', linestyle='')
+        plt.savefig(os.path.join('plot', 'loss.pdf'))
         plt.show()
 
 class ReplayBuffer(object):
@@ -105,7 +117,7 @@ class ReplayBuffer(object):
     def push(self, state, action, reward, next_state, next_enabled_actions, goal_state, self_loop, deadlock):
         # Construct tensors from raw data and save to replay buffer for later sampling
         state = T.tensor([state.data], dtype=T.float32, device=self.device)
-        action = T.tensor([action.data], dtype=T.float32, device=self.device)
+        action = T.tensor([action.data], dtype=T.int64, device=self.device)
         reward = T.tensor([reward], dtype=T.float32, device=self.device)
         next_state = T.tensor([next_state.data], dtype=T.float32, device=self.device)
         next_enabled_actions = T.tensor([action.data for action in next_enabled_actions], dtype=T.float32, device=self.device)
@@ -121,23 +133,21 @@ class ReplayBuffer(object):
         return len(self.buffer)
 
 class DQNetwork(nn.Module):
-    def __init__(self, input_dims, fc_dims):
+    def __init__(self, input_dims, fc_dims, output_dim=1):
         super(DQNetwork, self).__init__()
 
         self.input_dims = input_dims # list of input dimensions
         self.fc_dims = fc_dims # list of fully connected layer dimensions
+        self.output_dim = output_dim # dimension of output layer
 
         # Define layers
         input_layer = nn.Linear(*self.input_dims, self.fc_dims[0])
-        # nn.init.kaiming_uniform_(input_layer.weight)
         self.fc = nn.ModuleList([input_layer]) # first fully connected layer
         for i in range(1, len(self.fc_dims)):
             # Add fully connected layers between input and output layers
             layer = nn.Linear(self.fc_dims[i-1], self.fc_dims[i])
-            # nn.init.kaiming_uniform_(layer.weight)
             self.fc.append(layer)
-        output_layer = nn.Linear(self.fc_dims[-1], 1)
-        # nn.init.kaiming_uniform_(output_layer.weight)
+        output_layer = nn.Linear(self.fc_dims[-1], self.output_dim)
         self.fc.append(output_layer) # output layer
     
     def forward(self, x):
@@ -149,10 +159,11 @@ class DQNetwork(nn.Module):
 
 class DQAgent():
     def __init__(self, gamma, epsilon, alpha,
-                 input_dims, fc_dims=[512, 512, 512],
+                 input_dims, fc_dims=[512, 512, 512], output_dim=1,
                  max_mem_size=100000, batch_size=64,
                  eps_min=.01, eps_dec=.995,
                  double_q=False,
+                 table=False,
                  opt=max,
                  verbose=False,
                  plot=False):
@@ -161,11 +172,13 @@ class DQAgent():
         self.alpha = alpha # learning rate
         self.input_dims = input_dims # list of input dimensions
         self.fc_dims = fc_dims # list of fully connected layer dimensions
+        self.output_dim = output_dim # output layer dimension
         self.mem_size = max_mem_size # maximum memory size
         self.batch_size = batch_size # batch size
         self.eps_min = eps_min # minimum exploration rate
         self.eps_dec = eps_dec # exploration rate decay
         self.double_q = double_q # whether to apply double deep Q learning
+        self.table = table # whether to output a Q-table as output layer
         self.opt = opt # function to determine what is considered optimal, i.e., max or min
         self.torch_opt = T.max if opt == max else T.min # torch equivalent of opt
         self.torch_argopt = T.argmax if opt == max else T.argmin # torch equivalent of argopt
@@ -175,10 +188,10 @@ class DQAgent():
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu') # device to use for training
 
         if self.verbose:
-            print(f'Creating policy and target networks with input dimensions {self.input_dims} and fully connected layer dimensions {self.fc_dims}')
+            print(f'Creating policy and target networks with input dimensions {self.input_dims}, fully connected layer dimensions {self.fc_dims} and output layer dimension {output_dim}')
         
-        self.policy_net = DQNetwork(input_dims=input_dims, fc_dims=fc_dims).to(self.device) # policy network
-        self.target_net = self.policy_net if not double_q else DQNetwork(input_dims=input_dims, fc_dims=fc_dims).to(self.device) # target network
+        self.policy_net = DQNetwork(input_dims=input_dims, fc_dims=fc_dims, output_dim=output_dim).to(self.device) # policy network
+        self.target_net = self.policy_net if not double_q else DQNetwork(input_dims=input_dims, fc_dims=fc_dims, output_dim=output_dim).to(self.device) # target network
         if double_q:
             self.target_net.load_state_dict(self.policy_net.state_dict()) # copy policy network weights to target network
         self.parameters = self.policy_net.parameters() # list of parameters for all layers
@@ -188,12 +201,16 @@ class DQAgent():
 
     def select_action(self, obs, enabled_actions, greedy=False):
         if greedy or random.uniform(0, 1) > self.epsilon:
-            state = T.tensor([obs.data] * len(enabled_actions), dtype=T.float32, device=self.device)
-            actions = T.tensor([action.data for action in enabled_actions], dtype=T.float32, device=self.device)
             with T.no_grad():
-                q_values = self.policy_net(T.cat((state, actions), dim=1)) # concatenate state-action pairs
+                if self.table:
+                    state = T.tensor([obs.data], dtype=T.float32, device=self.device)
+                    q_values = self.policy_net(state).squeeze(0)
+                else:
+                    actions = T.tensor([action.data for action in enabled_actions], dtype=T.float32, device=self.device)
+                    state = T.tensor([obs.data] * len(enabled_actions), dtype=T.float32, device=self.device)
+                    q_values = self.policy_net(T.cat((state, actions), dim=1)) # concatenate state-action pairs
             opt = self.torch_argopt(q_values) # get index of optimal action
-            return enabled_actions[opt], q_values[opt].item() # return action and Q-value
+            return enabled_actions[opt % len(enabled_actions)], q_values[opt % len(enabled_actions)].item() # return action and Q-value
         else:
             return random.choice(enabled_actions), None
         
@@ -206,6 +223,7 @@ class DQAgent():
         
         state_batch = T.cat(batch.state)
         action_batch = T.cat(batch.action)
+        next_state_batch = T.cat(batch.next_state)
         reward_batch = T.cat(batch.reward)
         goal_state_mask = T.cat(batch.goal_state)
         self_loop_mask = T.cat(batch.self_loop)
@@ -214,16 +232,24 @@ class DQAgent():
         next_state_values = T.zeros(self.batch_size, device=self.device)
         mask = T.logical_and(~goal_state_mask, ~deadlock_mask)
         
-        for i, (condition, state, actions) in enumerate(zip(mask, batch.next_state, batch.next_enabled_actions)):
-            if condition:
-                with T.no_grad():
-                    next_state_values[i] = self.torch_opt(self.target_net(T.cat((state.repeat(len(actions), 1), actions), dim=1)))
+        with T.no_grad():
+            if self.table:
+                next_state_values = self.torch_opt(self.target_net(next_state_batch), 1)[0] # contains the optimal Q values for the non-final states
+                next_state_values[goal_state_mask] = 0 # Q value for goal state is zero
+            else:
+                for i, (condition, state, actions) in enumerate(zip(mask, batch.next_state, batch.next_enabled_actions)):
+                    if condition:
+                        next_state_values[i] = self.torch_opt(self.target_net(T.cat((state.repeat(len(actions), 1), actions), dim=1)))
 
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * self.gamma) + reward_batch # expected Q-values
         
         self.optimizer.zero_grad()
-        state_action_values = self.policy_net(T.cat((state_batch, action_batch), dim=1)).squeeze(1) # current Q-values
+        
+        if self.table:
+            state_action_values = self.policy_net(state_batch).gather(1, action_batch).squeeze(1)
+        else:
+            state_action_values = self.policy_net(T.cat((state_batch, action_batch), dim=1)).squeeze(1) # current Q-values
 
         # Compute loss
         loss = self.criterion(state_action_values, expected_state_action_values)
@@ -254,10 +280,11 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
         results = Results()
     
     SI = model_checker.network.get_initial_state() # initial state
+    A0 = model_checker.network.get_transitions(SI) # initial transitions
     
-    obs_dim = len(Observation(model_checker, SI)) # dimension of observation encoding
-    act_dim = len(Action(model_checker, random.choice(model_checker.network.get_transitions(SI)))) # dimension of action encoding
-    input_dims = [obs_dim + act_dim]
+    counts = {i: component.transition_counts for i, component in enumerate(model_checker.network.components)}
+    output_dim = np.sum([max(k) for k in counts.values()]) if model_checker.args.table else 1
+    input_dims = [len(Observation(model_checker, SI))] if model_checker.args.table else [len(Observation(model_checker, SI)) + len(Action(model_checker, random.choice(A0), A0, output_dim))]
     
     # Deep Q-learning agent
     agent = DQAgent(gamma=model_checker.args.gamma,
@@ -265,11 +292,13 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
                     alpha=model_checker.args.alpha,
                     input_dims=input_dims,
                     fc_dims=model_checker.args.fc_dims,
+                    output_dim=output_dim,
                     max_mem_size=model_checker.args.max_mem_size,
                     batch_size=model_checker.args.batch_size,
                     eps_min=model_checker.args.epsilon_min,
                     eps_dec=model_checker.args.epsilon_decay,
                     double_q=model_checker.args.double_q,
+                    table=model_checker.args.table,
                     opt=utils._opt(op),
                     verbose=model_checker.args.verbose,
                     plot=model_checker.args.plot)
@@ -296,15 +325,15 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
         while not goal_state and not self_loop and not deadlock:
             s, obs = _s, _obs # update state and observation
             A = model_checker.network.get_transitions(s) # possible actions
-            enabled_actions = [Action(model_checker, a) for a in A] # enabled actions
-            action, _ = agent.select_action(obs, enabled_actions) # choose action from network
-            a = next(a for a in A if Action(model_checker, a) == action) # get action
+            enabled_actions = [Action(model_checker, a, A, output_dim) for a in A] # enabled actions
+            action, _ = agent.select_action(obs, enabled_actions, output_dim) # choose action from network
+            a = next(a for a in A if Action(model_checker, a, A, output_dim) == action) # get action
             D = model_checker.network.get_branches(s, a) # possible transitions
             delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
             reward = [reward_exp]
             _s = model_checker.network.jump(s, a, delta, reward) # r, s' = sample(s, a)
             _A = model_checker.network.get_transitions(_s)
-            next_enabled_actions = [Action(model_checker, a) for a in _A]
+            next_enabled_actions = [Action(model_checker, a, _A, output_dim) for a in _A]
             
             goal_state = model_checker.network.get_expression_value(_s, goal_exp) # we reached a goal state (Q := 0)
             self_loop = _s == s and len(A) == 1 and len(D) == 1 # the only possible transition is to itself, i.e., s' = s (tau loop)
@@ -320,7 +349,7 @@ def learn(model_checker, op: str, is_prob: bool, is_reach: bool, is_reward: bool
             if model_checker.args.double_q:
                 agent.soft_update(model_checker.args.tau)
         
-        _, q_value = agent.select_action(Observation(model_checker, SI), [Action(model_checker, a) for a in model_checker.network.get_transitions(SI)], greedy=True)
+        _, q_value = agent.select_action(Observation(model_checker, SI), [Action(model_checker, a, A0, output_dim) for a in A0], greedy=True)
     
     if model_checker.args.verbose:
         print(f'Finished: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}{" " * 16}')

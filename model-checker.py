@@ -16,9 +16,9 @@ class ModelChecker():
     Q_LEARNING_DISCOUNT = 1 # gamma for Q-learning
     Q_LEARNING_RUNS = 10000 # number of runs for Q-learning
     DOUBLE_Q = False # whether to use double deep Q learning using a separate target and policy network
-    MAX_MEM_SIZE = 100000 # maximum memory size for deep Q-learning
+    MAX_MEM_SIZE = 10000000 # maximum memory size for deep Q-learning
     BATCH_SIZE = 64 # batch size for deep Q-learning
-    TAU = 1 # tau for soft target network updates
+    TAU = 0.05 # tau for soft target network updates
     FC_DIMS = [512, 512, 512] # fully connected layer dimensions for deep Q-learning
     ONEHOT_ALL = False # whether to use one-hot encoding for states
     ONEHOT = [] # variables to use one-hot encoding for
@@ -60,6 +60,7 @@ class ModelChecker():
 
         parser.add_argument('--verbose', '-v', action='store_true', help='print progress information when available')
         parser.add_argument('--plot', action='store_true', help='plot the results')
+        parser.add_argument('--table', action='store_true', help='Deep Q-learning output layer represents a table of Q-values instead of a single Q-value')
 
         self.args = parser.parse_args()
 
