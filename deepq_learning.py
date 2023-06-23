@@ -20,7 +20,8 @@ class Observation():
         self.network = model_checker.network # MDP model network
         self.onehot_all = model_checker.args.onehot_all # encode all bounded variables one-hot
         self.onehot = model_checker.args.onehot # encode certain variables one-hot
-        self.ignore = model_checker.args.ignore # ignore certain variables in encoding
+        self.ignore = model_checker.args.ignore # ignore predefined variables in encoding
+        self.ignore_unbounded = model_checker.args.ignore_unbounded # ignore unbounded variables in encoding
         self.data = list(self._obs(state))
     
     def _loc(self, state):
@@ -36,11 +37,13 @@ class Observation():
         
         for var in range(len(variables)):
             if variables[var].name in self.ignore:
-                continue # the currently selected variable is in the ignore list
-            if variables[var].minValue is not None and variables[var].maxValue is not None and (self.onehot_all or variables[var].name in self.onehot):
+                continue # ignore variable in state encoding
+            elif variables[var].minValue is not None and variables[var].maxValue is not None and (self.onehot_all or variables[var].name in self.onehot):
                 yield from self._onehot(state, variables, var) # construct a series of onehot-encoded neurons
-            else:
-                yield state.get_variable_value(var) # return the ordinal value of the variable
+            elif variables[var].minValue is not None and variables[var].maxValue is not None:
+                yield (state.get_variable_value(var) - variables[var].minValue) / (variables[var].maxValue - variables[var].minValue) # return the normalized ordinal value of the variable
+            elif not self.ignore_unbounded:
+                yield state.get_variable_value(var) # return raw value of the variable
         
         locations = list(self._loc(state))
         for i, component in enumerate(self.network.components):
@@ -222,6 +225,9 @@ class DQAgent():
             return enabled_actions[opt % len(enabled_actions)], q_values[opt % len(enabled_actions)].item() # return action and Q-value
         else:
             return random.choice(enabled_actions), None
+    
+    def eval_policy(self, next_state, next_enabled_actions):
+        return self.torch_opt(self.policy_net(T.cat((next_state.repeat(len(next_enabled_actions), 1), next_enabled_actions), dim=1)))
         
     def optimize_model(self):
         if len(self.buffer) < self.batch_size:
@@ -238,18 +244,17 @@ class DQAgent():
         self_loop_mask = T.cat(batch.self_loop)
         deadlock_mask = T.cat(batch.deadlock)
         
-        next_state_values = T.zeros(self.batch_size, device=self.device)
         mask = T.logical_and(~goal_state_mask, ~deadlock_mask)
         
-        with T.no_grad():
-            if self.table:
-                next_state_values = self.torch_opt(self.target_net(next_state_batch), 1)[0] # contains the optimal Q values for the non-final states
-                next_state_values[goal_state_mask] = 0 # Q value for goal state is zero
-            else:
-                for i, (condition, state, actions) in enumerate(zip(mask, batch.next_state, batch.next_enabled_actions)):
-                    if condition:
-                        next_state_values[i] = self.torch_opt(self.target_net(T.cat((state.repeat(len(actions), 1), actions), dim=1)))
-
+        next_state_values = T.zeros(self.batch_size, dtype=T.float32, device=self.device)
+        
+        if True in mask:
+            with T.no_grad():
+                if self.table:
+                    next_state_values[mask] = self.torch_opt(self.target_net(next_state_batch[mask]), 1)[0]
+                else:
+                    next_state_values[mask] = T.stack([self.eval_policy(next_state, next_enabled_actions) for next_state, next_enabled_actions in zip(next_state_batch[mask], [batch.next_enabled_actions[i] for i, m in enumerate(mask) if m])])
+        
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * self.gamma) + reward_batch # expected Q-values
         
