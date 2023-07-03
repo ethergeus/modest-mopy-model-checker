@@ -57,7 +57,8 @@ class ModelChecker():
         parser.add_argument('--onehot-all', action='store_true', default=self.ONEHOT_ALL, help='use one-hot encoding for all variables')
         parser.add_argument('--onehot', type=str, nargs='+', default=self.ONEHOT, help=f'variables to use one-hot encoding for (default: {self.ONEHOT})')
         parser.add_argument('--ignore', type=str, nargs='+', default=self.IGNORE, help=f'variables to ignore when encoding the state-space (default: {self.IGNORE})')
-        parser.add_argument('--ignore-unbounded', action='store_true', help='Ignore unbounded variables in the observation encoding')
+        parser.add_argument('--ignore-unbounded', action='store_true', help='ignore unbounded variables in the observation encoding')
+        parser.add_argument('--scheduler', action='store_true', help='find the optimal scheduler')
 
         parser.add_argument('--verbose', '-v', action='store_true', help='print progress information when available')
         parser.add_argument('--plot', action='store_true', help='plot the results')
@@ -79,7 +80,7 @@ class ModelChecker():
         # Perform model checking on the specified properties
         self.check_properties(self.args.properties)
     
-    def check_properties(self, properties = []) -> None:
+    def check_properties(self, properties=[]) -> None:
         if len(properties) == 0:
             # No properties specified, check all properties
             properties = self.properties

@@ -15,7 +15,14 @@ import utils
 
 Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state', 'next_enabled_actions', 'goal_state', 'self_loop', 'deadlock')) # transition tuple
 
-class Observation():
+
+def _onehot(state, variables, var):
+    # Encode a variable as one-hot, i.e., a variable with range 0..4 and value 1 is encoded as [False, True, False, False]
+    for i in range(variables[var].minValue, variables[var].maxValue + 1):
+        yield state.get_variable_value(var) == i
+
+
+class Observation:
     def __init__(self, model_checker, state):
         self.network = model_checker.network # MDP model network
         self.onehot_all = model_checker.args.onehot_all # encode all bounded variables one-hot
@@ -39,7 +46,7 @@ class Observation():
             if variables[var].name in self.ignore:
                 continue # ignore variable in state encoding
             elif variables[var].minValue is not None and variables[var].maxValue is not None and (self.onehot_all or variables[var].name in self.onehot):
-                yield from self._onehot(state, variables, var) # construct a series of onehot-encoded neurons
+                yield from _onehot(state, variables, var) # construct a series of onehot-encoded neurons
             elif variables[var].minValue is not None and variables[var].maxValue is not None:
                 yield (state.get_variable_value(var) - variables[var].minValue) / (variables[var].maxValue - variables[var].minValue) # return the normalized ordinal value of the variable
             elif not self.ignore_unbounded:
@@ -49,19 +56,15 @@ class Observation():
         for i, component in enumerate(self.network.components):
             for location in range(len(component.transition_counts)):
                 yield locations[i] == location # returns the one-hot encoded variable location
-    
-    def _onehot(self, state, variables, var):
-        # Encode a variable as one-hot, i.e., a variable with range 0..4 and value 1 is encoded as [False, True, False, False]
-        for i in range(variables[var].minValue, variables[var].maxValue + 1):
-            yield state.get_variable_value(var) == i
-    
+
     def __eq__(self, other):
         return self.data == other.data
     
     def __len__(self):
         return len(self.data)
 
-class Action():
+
+class Action:
     def __init__(self, model_checker, transition, enabled_transitions, output_dim):
         self.network = model_checker.network
         self.n = output_dim
@@ -86,6 +89,7 @@ class Action():
     
     def __len__(self):
         return len(self.data)
+
 
 class Results(object):
     def __init__(self, model, prop, note, maxlen=100000):
@@ -121,6 +125,7 @@ class Results(object):
         plt.show()
         pickle.dump(ax, open(os.path.join('data', f'{prefix}-loss.pickle'), 'wb'))
 
+
 class ReplayBuffer(object):
     def __init__(self, device, maxlen=100000):
         self.device = device
@@ -143,6 +148,7 @@ class ReplayBuffer(object):
     
     def __len__(self):
         return len(self.buffer)
+
 
 class DQNetwork(nn.Module):
     def __init__(self, input_dims, fc_dims, output_dim=1):
@@ -169,7 +175,7 @@ class DQNetwork(nn.Module):
         return self.fc[-1](x) # return output of last layer (Q value)
 
 
-class DQAgent():
+class DQAgent:
     def __init__(self, gamma, epsilon, alpha,
                  input_dims, fc_dims=[512, 512, 512], output_dim=1,
                  max_mem_size=100000, batch_size=64,
@@ -286,6 +292,7 @@ class DQAgent():
         for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
             target_param.data.copy_(tau * policy_param.data + (1 - tau) * target_param.data)
 
+
 def learn(model_checker, prop, op: str, is_prob: bool, is_reach: bool, is_reward: bool, goal_exp, reward_exp) -> float:
     if not is_reward:
         return None # Q-learning only works for expected reward properties
@@ -340,7 +347,7 @@ def learn(model_checker, prop, op: str, is_prob: bool, is_reach: bool, is_reward
             s, obs = _s, _obs # update state and observation
             A = model_checker.network.get_transitions(s) # possible actions
             enabled_actions = [Action(model_checker, a, A, output_dim) for a in A] # enabled actions
-            action, _ = agent.select_action(obs, enabled_actions, output_dim) # choose action from network
+            action, _ = agent.select_action(obs, enabled_actions) # choose action from network
             a = next(a for a in A if Action(model_checker, a, A, output_dim) == action) # get action
             D = model_checker.network.get_branches(s, a) # possible transitions
             delta = random.choices(D, weights=[delta.probability for delta in D])[0] # choose transition randomly
@@ -370,4 +377,23 @@ def learn(model_checker, prop, op: str, is_prob: bool, is_reach: bool, is_reward
     if model_checker.args.plot:
         results.push(q_value, loss)
         results.plot()
+    if model_checker.args.scheduler:
+        print(f'Optimal scheduler from initial state {SI}')
+        goal_state, self_loop, deadlock = False, False, False
+        _s = SI
+        _obs = Observation(model_checker, _s)
+        while not goal_state and not self_loop and not deadlock:
+            s, obs = _s, _obs
+            A = model_checker.network.get_transitions(s)
+            enabled_actions = [Action(model_checker, a, A, output_dim) for a in A]
+            action, _ = agent.select_action(obs, enabled_actions, greedy=True)
+            a = next(a for a in A if Action(model_checker, a, A, output_dim) == action)
+            D = model_checker.network.get_branches(s, a)
+            delta = random.choices(D, weights=[delta.probability for delta in D])[0]
+            _s = model_checker.network.jump(s, a, delta)
+            _obs = Observation(model_checker, _s)
+            goal_state = model_checker.network.get_expression_value(_s, goal_exp)
+            self_loop = _s == s and len(A) == 1 and len(D) == 1
+            deadlock = len(model_checker.network.get_transitions(_s)) == 0
+            print(f'{s} --{a.transitions}({model_checker.network.transition_labels[a.label]})--> {_s}')
     return q_value

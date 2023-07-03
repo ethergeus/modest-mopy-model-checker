@@ -5,3 +5,11 @@ __pycache__/
 *-checkpoint.*
 plot/
 data/
+report/*
+!report/report.tex
+!report/bibliography.bib
+!report/llncs.cls
+!report/llncsdoc.sty
+!report/mdpn.sty
+!report/splncs04.bst
+!report/sections/
