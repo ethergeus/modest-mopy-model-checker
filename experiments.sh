@@ -3,7 +3,7 @@
 # ./model-checker.py modelPy/single-transition.py --deep-q-learning -v --plot --alpha 1e-4 -k 1000 --properties R1 --note ordinal
 # ./model-checker.py modelPy/single-transition.py --deep-q-learning -v --plot --alpha 1e-4 -k 1000 --properties R1 --onehot-all --note onehot
 
-# ./model-checker.py modelPy/success-fail.py --deep-q-learning -v --plot --alpha 1e-4 -k 1000 --properties R1 ---note ordinal
+# ./model-checker.py modelPy/success-fail.py --deep-q-learning -v --plot --alpha 1e-4 -k 1000 --properties R1 --note ordinal
 # ./model-checker.py modelPy/success-fail.py --deep-q-learning -v --plot --alpha 1e-4 -k 1000 --properties R1 --onehot-all --note onehot
 
 # ./model-checker.py modelPy/safe-risk.py --deep-q-learning -v --plot --alpha 1e-4 -k 1000 --properties R1 --note ordinal
