@@ -1,0 +1,19 @@
+\section{Discussion}
+
+During the process of developing the Deep Q-learning model checker, we have encountered a number of issues that have not been resolved. These issues are discussed in this section.
+
+\subsection{Encoding the action-space}
+
+The question of how to encode the action space has been a recurring theme throughout the development of the model checker. The action space is a set of actions that can be taken in a given state. In the case of a single automaton, this is relatively simple. However, when considering multiple automatons and the principle of parallel composition, the model breaks down quickly. For example, for very simple models such as the QComp Consensus model \cite{consensus} the model does not converge to the correct solution. This model failed to converge to the correct solution. After considering the results, we arrived at the conclusion that an oversight in how a model with multiple automatons encodes its action space is the culprit of the model being unable to `learn' correct Q-values. However, we were unable to find the issue at the time of writing.
+
+\subsection{Execution time}
+
+The order of magnitude of execution time of the input-layer encoded approach was hours, whilst solving the same model using a traditional Q-learning solver takes milliseconds. This is a significant difference, and more work is required to optimize the learning process in order to minimize this difference. For the Q-table approach, the order of magnitude of solving a model was minutes instead of hours, but these were less reliable due issues relating to the encoding. In the Q-table approach, the Q-value of a transition is inherently re-used for other input neuron combinations, and therefore the neuron network has a difficult time in discerning patterns. This is a fundamental issue with the Q-table approach, and is not easily solved. The input-layer approach does not have this issue, but is significantly slower due to having to issue more queries to the network and having to post-process a significant amount of data on the CPU.
+
+\subsection{Advantages of Deep Q-learning over Q-learning}
+
+In theory, the advantage of Deep Q-learning would be that the complex behavior of the model can be expressed in just the weights of the neural network. A trained network can then be used to check properties of the model. For large models, a traditional model checker can exceed its available memory due to state space explosion. A neural network approach can quell this issue by only storing the weights of the network, and not the entire state space. However, in practice this advantage cannot be utilized. For the aforementioned use-case (lage, complex models), the neural network was not able to converge to any coherent solution to a given property and the model checker did not terminate. Therefore, in its current state, Deep Q-learning is not a viable alternative to Q-learning for the purpose of model checking.
+
+\subsection{Future work}
+
+The current implementation of the Deep Q-learning model checker is a proof-of-concept, and is not optimized for performance. The current implementation is not viable for use in a production environment, and more work is required to optimize the learning process in terms of speed and accuracy. An underlying issue on the feedback of correct Q-values into the network and determining an optimal action-space encoding are the first steps towards a more viable solution.

@@ -1,0 +1,21 @@
+\section{Encoding the state-space}
+
+The state-space of an MDP contains values of variables that are in a given range. The values for these variables can be used to define the states' properties.
+
+In Deep Q-learning the state-space represents the input layer of the neural network. Encoding the information representing the state we are currently in and are requesting a set of Q values for is not straight-forward. There are multiple ways of embedding this information in the input layer, each method has its own strengths and weaknesses.
+
+\subsection{One-hot encoding of state variables}
+
+Encoding a variables' values as one-hot neurons is a method to store data for a nominal data point, i.e., there is no ordering applicable between the values of the variable and any such connection made by a neural network in training will likely work counterproductive. An example would be for an internal variable representing the state we are in. Applying one-hot encoding will create a neuron for every value (looking at the possible range of the model variable) and encode its value as either a ``1'' or a ``0''. Encoding the variable this way will prevent ordinal relationships which do not exist in the real model from forming.
+
+Applying one-hot encoding drastically increases the number of input variables in the input layer. This in turn increases the size of the neural network (particularly for fully connected layers as every neuron in layer $A$ is then connected to every neuron in layer $B$. The sudden rise in input variables (as every possible permutation of combinations of values for a given variable is now a valid input) can cause a ``big p'' (too many predictors) problem to occur. A ``big p''-problem is characterized by the relation between $p$, the number of predictors and $n$, the number of samples. In order for the network to learn for all its parameters $p$ it is assumed $p \ll n$ such that there is adequate converge for the $p$-dimensional domain. A higher-dimensional input layer is more complex than a lower-dimensional input layer, as a result these higher-dimensional functions are potentially more complicated and will take more time and training data to properly converge (also called the ``curse of dimensionality'').
+
+\subsubsection{Dummy variable encoding}
+
+Furthermore, when one or more of the input neurons can accurately predict the values of another input neuron (multicollinearity), the accuracy of the individual collinear predictor decreases as a result of the coefficients during the optimization process varying with a high degree for a given small change. The odds of measuring the effects of multicollinearity increases when encoding variables of the state-space in a one-hot encoding.
+
+To combat this we can ``leave out'' one of the variables of the one-hot encoding, as its value is already implied by the values of the other variable combinations. E.g., when we have a variable with three different combinations $0, \dots, 3$ we can encode this in one-hot by the following three combinations: $[1, 0, 0]$, $[0, 1, 0]$, $[0, 0, 1]$. To get rid of multicollinearity we can remove one of the variable to convey the same information with fewer neurons: $[1, 0]$, $[0, 1]$, $[0, 0]$. Instead of the sum of all variables being one, there is now the possibility for the sum to be zero and there is no longer a direct correlation between multiple variables in the array.
+
+\subsection{Ordinal encoding of state variables}
+
+Contrary to the discussed method of one-hot encoding a variables to multiple input neurons, where the sum of the values of the individual neurons always equals one, is the alternative method of ordinal encoding. Here the value of the input neuron is represented by the value of the variable directly. The network is able to find patterns and discern between the values of the variable when there is a clear ordinal relationship between its different possible values. When considering the domain of model checking, variables that are valid candidates for an ordinal encoding are counters, clocks of any kind. To discern which variables should be encoded as one-hot or ordinal we can record metadata in the ``JANI'' or ``Modest'' file or perform heuristics, along with a possible manual override in the model checker itself.

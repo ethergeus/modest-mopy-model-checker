@@ -1,0 +1,23 @@
+\section{Introduction}
+
+\subsection{Q-learning}
+
+Q-learning is a model-free machine learning algorithm used to determine the optimal action for a given initial state. In model checking the Q-value of the optimal (minimal or maximal, depending on the property to be checked) is the solution to the expected value property. The Q-value is initialized to $0$ for all states, and is updated using the following formula:
+
+\begin{equation}
+    Q(s, a) \leftarrow Q(s, a) + \alpha \cdot (r + \gamma \cdot \max_{a'} Q(s', a') - Q(s, a))
+\end{equation}
+
+Here $Q(s, a)$ is the Q-value given state $s$ and action $a$. $\alpha$ is the learning rate, which determines how much the Q-value is updated in relation to the reward the model can optimally gain from state $s$. A high learning rate can lead to faster convergence at best, and overshooting at worst. A low learning rate can lead to slower convergence. $\gamma$ is the discount factor, which determines how much the model values rewards which are further away in the future in relation to rewards which are directly reachable. The Q-value given a state-action pair is updated by the difference between the current Q-value and the new Q-value, which is the sum of the reward $r$ and the maximum Q-value of the next state $s'$ and all possible actions $a'$.
+
+During the process of updating the Q-value, the model can either choose to `explore' or `exploit', the former means the model will take a transition which is not optimal, and the latter means the model will take the optimal transition. The exploration rate $\epsilon$ determines the probability of the model to explore. A high exploration rate can lead to a more accurate value, as Q-values of states which are not optimal are also updated and these can influence the Q-value of the optimal transition. A low exploration rate can lead to a faster convergence, as the model will more often take the optimal transition. The exploration rate is generally gradually decreased over time, as the model becomes more accurate. In this paper, the exploration rate is decreased using the following formula:
+
+\begin{equation}
+    \epsilon \leftarrow \epsilon \cdot \epsilon_{decay}
+\end{equation}
+
+Here $\epsilon_{decay}$ is the decay rate, which determines how much the exploration rate is decreased. To prevent the exploration rate from becoming $0$, a minimum exploration rate $\epsilon_{min}$ is set. The exploration rate is decreased until it reaches this minimum value.
+
+\subsection{Deep Q-learning}
+
+Deep Q-learning is a variant of Q-learning where the Q-table is replaced by a neural network. The input layer is an encoding of the state (or observation) and the output layer is a collection of Q values. The method of optimizing using Q-learning for a given property has proven useful in existing tools \cite{modest}. To test how Deep Q-learning performs, a model checker has been developed that utilizes a neural network to store its Q-values in the form of weights. The expectation is that the network is able to recognize patterns in actions and states to find the Q-value of the initial state (which provides the solution to the property to be evaluated).

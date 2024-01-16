@@ -1,4 +1,4 @@
-# simple-mdp
+# success-fail
 
 from __future__ import annotations
 from typing import List, Union, Optional
@@ -22,20 +22,23 @@ class VariableInfo(object):
 
 # States
 class State(object):
-	__slots__ = ("state", "reward")
+	__slots__ = ("state", "reward", "Main_location")
 	
 	def get_variable_value(self, variable: int):
 		if variable == 0:
 			return self.state
 		elif variable == 1:
 			return self.reward
+		elif variable == 2:
+			return self.Main_location
 	
 	def copy_to(self, other: State):
 		other.state = self.state
 		other.reward = self.reward
+		other.Main_location = self.Main_location
 	
 	def __eq__(self, other):
-		return isinstance(other, self.__class__) and self.state == other.state and self.reward == other.reward
+		return isinstance(other, self.__class__) and self.state == other.state and self.reward == other.reward and self.Main_location == other.Main_location
 	
 	def __ne__(self, other):
 		return not self.__eq__(other)
@@ -44,12 +47,14 @@ class State(object):
 		result = 75619
 		result = (((101 * result) & 0xFFFFFFFF) + hash(self.state)) & 0xFFFFFFFF
 		result = (((101 * result) & 0xFFFFFFFF) + hash(self.reward)) & 0xFFFFFFFF
+		result = (((101 * result) & 0xFFFFFFFF) + hash(self.Main_location)) & 0xFFFFFFFF
 		return result
 	
 	def __str__(self):
 		result = "("
 		result += "state = " + str(self.state)
 		result += ", reward = " + str(self.reward)
+		result += ", Main_location = " + str(self.Main_location)
 		result += ")"
 		return result
 
@@ -81,65 +86,69 @@ class MainAutomaton(object):
 	
 	def __init__(self, network: Network):
 		self.network = network
-		self.transition_counts = [1]
-		self.transition_labels = [[1]]
-		self.branch_counts = [[2]]
+		self.transition_counts = [1, 0]
+		self.transition_labels = [[1], []]
+		self.branch_counts = [[2], []]
 	
 	def set_initial_values(self, state: State) -> None:
-		pass
+		state.Main_location = 0
 	
 	def set_initial_transient_values(self, transient: Transient) -> None:
 		pass
 	
 	def get_transient_value(self, state: State, transient_variable: str):
-		location = 0
+		location = state.Main_location
 		return None
 	
 	def get_transition_count(self, state: State) -> int:
-		return self.transition_counts[0]
+		return self.transition_counts[state.Main_location]
 	
 	def get_transition_label(self, state: State, transition: int) -> int:
-		return self.transition_labels[0][transition]
+		return self.transition_labels[state.Main_location][transition]
 	
 	def get_guard_value(self, state: State, transition: int) -> bool:
-		location = 0
+		location = state.Main_location
 		if location == 0:
-			return (state.state == 0)
+			return True
 		else:
 			raise IndexError
 	
 	def get_rate_value(self, state: State, transition: int) -> Optional[float]:
-		location = 0
+		location = state.Main_location
 		if location == 0:
 			return None
 		else:
 			raise IndexError
 	
 	def get_branch_count(self, state: State, transition: int) -> int:
-		return self.branch_counts[0][transition]
+		return self.branch_counts[state.Main_location][transition]
 	
 	def get_probability_value(self, state: State, transition: int, branch: int) -> float:
-		location = 0
+		location = state.Main_location
 		if location == 0:
 			if transition == 0:
 				if True:
 					return (1 / 2)
 			else:
 				raise IndexError
+		elif location == 1:
+			raise IndexError
 		else:
 			raise IndexError
 	
 	def jump(self, state: State, transient: Transient, transition: int, branch: int, assignment_index: int, target_state: State, target_transient: Transient) -> None:
 		if assignment_index == 0:
-			location = 0
+			location = state.Main_location
 			if location == 0:
 				if transition == 0:
 					if branch == 0:
 						target_state.state = 1
 						target_state.reward = 8
+						target_state.Main_location = 1
 					elif branch == 1:
 						target_state.state = 2
 						target_state.reward = 0
+						target_state.Main_location = 1
 
 class PropertyExpression(object):
 	__slots__ = ("op", "args")
@@ -200,7 +209,8 @@ class Network(object):
 		]
 		self.variables = [
 			VariableInfo("state", None, "int", 0, 2),
-			VariableInfo("reward", None, "int", 0, 8)
+			VariableInfo("reward", None, "int", 0, 8),
+			VariableInfo("Main_location", 0, "int", 0, 1)
 		]
 		self._aut_Main = MainAutomaton(self)
 		self.components = [self._aut_Main]

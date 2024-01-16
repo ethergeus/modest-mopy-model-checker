@@ -339,7 +339,7 @@ def learn(model_checker, prop, op: str, is_prob: bool, is_reach: bool, is_reward
         if model_checker.args.verbose:
             t1 = timer()
             if t1 - t0 > model_checker.PROGRESS_INTERVAL:
-                print(f'Progress: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, run = {run}{" " * 16}', end='\r', flush=True)
+                print(f'Progress: Q = {q_value:.2f}, loss = {loss:.2f}, epsilon = {agent.epsilon:.2f}, t = {t1 - t0}, run = {run}{" " * 16}', end='\r', flush=True)
                 t0 = t1
         
         goal_state, self_loop, deadlock = False, False, False

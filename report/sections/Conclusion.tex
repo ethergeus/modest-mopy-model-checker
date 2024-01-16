@@ -1,0 +1,18 @@
+\newpage
+\section{Conclusion}
+
+In this paper we have evaluated the applicability of using a Deep Q neural network to solve properties in a model. We have compared different approaches in encoding the action space, and evaluated the accuracy of the resulting model. We have found no significant difference between the accuracy of the one-hot encoding versus ordinal encoding. Depending on the model, either of the two approaches converged first, but there was not discernable overall pattern between the two. Furthermore, encoding the action-space as a Q-table in the output layer was very unreliable for some more complex models, in particular models with more than one automaton. In these models, the neural network was unable to correctly identify the optimal action due to complications related to encoding multiple automatons' action spaces into a single neuron layer. Due to the fixed nature of a neural network layer, this is a inherent limitation of this approach, and we were unable to find a good solution to solve this issue. For some less complex models, where the number of actions was more constant, such as the single-transition, success-fail and safe-risk models, the Q-table approach was just as viable and converged much more quickly. As such, it is advised to use the Q-table approach when dealing with simple models with one automaton and a (relatively) fixed number of actions, and the input layer approach when dealing with more complex models with multiple automatons and a variable number of actions.
+
+\subsection{Simple models}
+
+The simple models all converged or oscillated around the correct solution. However, these simple models are so trivial that they can be solved using traditional Q-learning in a fraction of the time. These models were primarily used to verify the correctness of the functioning of the Deep Q-learning learning process, and to compare the accuracy of the Deep Q-learning approach to the traditional Q-learning approach. In this regard, the Deep Q-learning performed reasonably well, but did not outperform traditional Q-learning.
+
+\subsection{QComp models}
+
+For the QComp models, which are more complex than the `simple models' mentioned before, the results were varying. For the `Energy-aware Job Scheduling' model for $N = 2$ and $N = 4$, the Deep Q-learning approach was viable. However, training these models took a significant amount of time. It was therefore not possible to research the effects of more complex models within the time scope of the current paper. More research is required to determine the viability of the Deep Q-learning approach for more complex models, and a different approach to the learning process is likely needed to gain temporal improvements.
+
+For the Randomized Consensus Protocol model, the results were worse than initially expected. The models all failed to arrive at the correct solution, and signified an underlying issue with the learning process.
+
+\subsection{Deep Q-learning versus Q-learning}
+
+The approach takes orders of magnitude longer to find a solution as opposed to traditional Q-learning, and did not produce more accurate results. Therefore, in its current state, Deep Q-learning is not a viable alternative to Q-learning for the purpose of model checking.

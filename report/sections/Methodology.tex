@@ -1,0 +1,159 @@
+\newpage
+\section{Methodology}
+
+\subsection{Batch-learning and experience replay}
+
+When optimizing the neural network for a given (set of) transition(s), there are a multitude of viable approaches. The most straightforward method is to navigate the network for one or more transitions and to optimize based on the loss of the batch of size one or greater. Given a batch of transitions we can compute the average loss using the algorithm in algorithm \ref{algorithm:loss}.
+
+Noteworthy to mention is that only the transition tuples are stored, not the subsequent Q-values, this means that for an observation we store the tuple $(s, a, s', as', r, g, d)$ where $s$ is the initial state, $a$ the action taken from said initial state, $s'$ the state we end up in after taking action $a$ from state $s$ and $as'$ the set of enabled actions in state $s'$. $r$ is the reward that is received from traversing the transient. Additionally, metadata is stored to assign zero Q-values to the appropriate states ($g$ := $s$ is a goal state, $d$ := $s$ is a deadlock state). The Q-values are gathered from the policy- and target network (represented by the same network when not using double Deep Q learning) every iteration and thus consider the Q-values as a result of the updated network weights.
+
+When applying algorithm \ref{algorithm:loss} for any number of transitions it is key to consider applying learning using experience replay. Here, instead of learning solely based off of the latest $x$ transitions we store said transitions in a replay buffer of a predefined maximum size and sample $x$ transitions randomly. If the replay buffer is full, its values are shifted and the oldest values are ejected. What is achieved is a more stable optimization methodology due to the last number of steps not overshadowing the policy updates. This way, earlier transitions encountered are still relevant in the learning process. A larger batch size yields a more varied set of learning data, however the computations will take longer to finish.
+
+\begin{algorithm}
+    \caption{Pseudo-code for calculating the loss of a batch of transitions using MSE (mean squared error) given a batch size ($N$) and a batch of transitions characterized by the variables $g$ ($s$ is a goal state), $d$ ($s$ is a deadlock state), $s'$ (the state as a product of the state-action pair transition), $as'$ (the enabled actions in $s'$), $s$ (the state part of the state-action pair transition) and $a$ (the action part of the state-action pair transition), $r$ is the reward from traversing from $s$ to $s'$.}
+    \label{algorithm:loss}
+    \begin{program}
+    \BEGIN \\ %
+    Q' := |zeros|(N)
+    mask := \lnot g \land \lnot d
+    \FOR i := 0 \TO N \STEP 1 \DO
+    condition := |mask|[i]
+    state := |s'|[i]
+    actions := |as'|[i]
+    \IF condition; \DO |Q'|[i] := |optimal|(|target_net|(|cat|(state, actions))) \OD \OD \\ \OD
+    Q' := (\gamma Q') + r
+    Q := |policy_net|(|cat|(s, a))
+    loss := |MSE|(Q, Q')
+    \END
+    \end{program}
+\end{algorithm}
+
+\subsection{Double Deep Q-learning}
+
+In Deep Q-learning the value of the Q-values are correlating to one another due to the expected Q-value for state $s$ being defined as $r + \gamma argmax(s', a')$. In cases where there are no deadlock or goal states reached this can cause a positive self-loop where the Q-values explode. There is a common method of reducing the correlation between the expectation and target by sampling the Q-values from different neural networks. The expected Q-values are samples from the target network and the current Q-values are sampled from the policy network. The policy network is then optimized by applying back-propagation on the loss.
+
+\subsubsection{Hard versus soft weight updates}
+
+When using a separate target and policy network in Deep Q-learning it is necessary to (at some point) propagate the weights we acquired using the optimization in the policy network to the target network. Otherwise the expected Q-values that are compared against the live Q-values of the policy network will remain the Q-values as a result of the initial randomized weight initialization. There are two prominent methods of transferring the weights of the policy network to the target network: hard and soft weight updates. When applying hard updating of the weights there is a set number of transitions or optimization steps before the weights are copied over from the policy network to the target network in its entirety. When applying soft weight updating we consider a constant $0 < \tau < 1$, and after every optimization step we update the weights of the target network according to the equation \ref{eq:soft_weight_update} where $\theta'$ is a weight in the target network and $\theta$ is a weight in the policy network.
+
+\begin{equation}\label{eq:soft_weight_update}
+    \theta\sp{\prime} \gets \tau \theta + (1 - \tau) \theta\sp{\prime}
+\end{equation}
+
+\subsection{MDPs}
+
+Due to the nature of a neural network and its `black box' properties, it was chosen to start with overly simplified models and gradually increase their complexity over time. There are several MDPs chosen to fulfill this role. In this section all MDPs are introduced along with appropriate solutions.
+
+\subsubsection{Single-transition MDP}
+
+The most simple and straight-forward MDP that can be constructed in the domain of reward property expressions is a model with two distinct states $s_0$ and $s_1$ where the transition $(s_0, \tau, s_1)$ yields a certain reward. This model is trivial to solve for most if not all model checkers, but serves as a starting point for the Deep Q-learning model checking experimentation. I.e., if the implemented network is unable to solve this simplest network, there is an inherent error in its implementation and its structure and optimization process needs to be re-established. Its solution is computed to be $8$:
+\begin{verbatim}
++ Property R1
+  Value:  8
+  Bounds: [8, 8]
+\end{verbatim}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[auto,node distance=8mm,>=latex,font=\small]
+        \tikzstyle{round}=[thick,draw=black,circle]
+        
+        \node[round] (s0) {$s_0$};
+        \node[round,right=40mm of s0] (s1) {$s_1$};
+        
+        \draw[->] (s0) -- node[above] {$[1] \tau (reward = 8)$} (s1);
+    \end{tikzpicture}
+    \caption{MDP with a single transition between two states.}
+    \label{fig:single-transition-mdp}
+\end{figure}
+
+\subsubsection{Success-fail MDP}
+
+A slightly more complex yet still trivially solvable MDP is one where we omit non-determinism and consider a single transition where there is a $0.5$ chance of reaching $success$ and a $0.5$ chance of reaching $fail$. The property we are checking for then becomes the expected reward in either of the goal states $success$ or $fail$. Its solution is computed to be $4$:
+\begin{verbatim}
++ Property R1
+  Value:  4
+  Bounds: [4, 4]
+\end{verbatim}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[auto,node distance=8mm,>=latex,font=\small]
+        \tikzstyle{round}=[thick,draw=black,circle]
+        
+        \node[round] (choose) {$choose$};
+        \node[round,above right=0mm and 40mm of choose] (success) {$success$};
+        \node[round,below right=0mm and 40mm of choose] (fail) {$fail$};
+        
+        \draw[->] (choose) -- node[above] {$[0.5] \tau (reward = 8)$} (success);
+        \draw[->] (choose) -- node[above] {$[0.5] \tau$} (fail);
+    \end{tikzpicture}
+    \caption{Modest MDP with a single transition awarding either a reward or no reward.}
+    \label{fig:success-fail-mdp}
+\end{figure}
+
+\subsubsection{Risk-safe MDP}
+
+Finally, we introduce a choice between two transitions in the initial state and consider two different properties: the maximum and minimum expected reward. The previously introduced model is modified to include a choice between $risk$ and $safe$. If we choose risk there is a $0.5$ chance of reaching success with a reward of $8$, and if we choose $safe$ there is a $0.9$ chance of reaching success with a reward of $2$. Here we find the maximum and minimum expected rewards to be $4$ and $1.8$ respectively:
+\begin{verbatim}
++ Property R1
+  Value:  4
+  Bounds: [4, 4]
++ Property R2
+  Value:  1.8
+  Bounds: [1.8, 1.8]
+\end{verbatim}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[auto,node distance=8mm,>=latex,font=\small]
+        \tikzstyle{round}=[thick,draw=black,circle]
+        
+        \node[round] (choose) {$choose$};
+        \node[round,above right=0mm and 20mm of choose] (safe) {$safe$};
+        \node[round,below right=0mm and 20mm of choose] (risk) {$risk$};
+        \node[round,above right=0mm and 90mm of choose] (success) {$success$};
+        \node[round,below right=0mm and 50mm of choose] (fail) {$fail$};
+        
+        \draw[->] (choose) -- node[above] {$s$} (safe);
+        \draw[->] (choose) -- node[above] {$r$} (risk);
+        \draw[->] (safe) -- node[above] {$[0.9] \tau (reward = 2)$} (success);
+        \draw[->] (safe) -- node[above] {$[0.1] \tau$} (fail);
+        \draw[->] (risk) -- node[above] {$[0.5] \tau (reward = 8)$} (success);
+        \draw[->] (risk) -- node[above] {$[0.5] \tau$} (fail);
+    \end{tikzpicture}
+    \caption{Modest MDP with a single choice in the first state between $s$ and $r$, which can take two different paths to success. Either via $safe$ or via $risk$, awarding a reward of $2$ and $8$ respectively. The chance to reach the $fail$ state is greater in $risk$ than it is in $safe$.}
+    \label{fig:safe-risk-mdp}
+\end{figure}
+
+\subsection{QComp models}
+
+A set of QComp models were chosen to test the Deep Q-learning model checking approach. The models were chosen based on their complexity and the number of states and transitions, as well as the prescence of an \emph{E-}type (expected value type) property. The models are as follows:
+
+\subsubsection{Energy-aware Job Scheduling}
+
+The first QComp model used to test Deep Q-learning is the Energy-aware Job Scheduling MDP \cite{eajs}. In this model, $N$ processes (2 or 4 in the case of this paper) are required to perform tasks given a deadline. The processes request to enter a `critical section' in order to perform their tasks, and consume a certain amount of energy depending whether or not they entered the `critical section' or not. It is possible for the process to exceed its deadline. The property $ExpUtil$ signifies the expected utility gained from the processes, i.e., the number of tasks finished without exceeding their deadline. The property $ExpUtil$ is computed to be $4.028$ for $N = 2$, $energy\_capacity = 100$ and $B = 5$:
+
+\begin{verbatim}
+  + Property ExpUtil
+    Value:  4.028
+    Bounds: [4.028, 4.028]
+\end{verbatim}
+
+The property $ExpUtil$ is computed to be $8.0176$ for $N = 2$, $energy\_capacity = 200$ and $B = 9$:
+
+\begin{verbatim}
+  + Property ExpUtil
+    Value:  8.0176
+    Bounds: [8.0176, 8.0176]
+\end{verbatim}
+
+\subsubsection{Randomized Consensus Protocol}
+
+The second QComp model used to test Deep Q-learning is the Consensus protocol \cite{consensus}. In this model, $N$ asynchronous processes communicate via a read/write channel. In every round (of which there can be possibly infinitely many) the processes read the status of all other processes and attempt to agree. If the processes do not agree (i.e., have not reached a consensus), their next choice is decided by a `coin flip'. The property $steps\_max$ signifies the maximum number of steps taken before the processes reach a consensus and is computed to be $75$ for $N = 2$:
+
+\begin{verbatim}
+  + Property steps_max
+    Value:  75
+    Bounds: [75, 75]
+\end{verbatim}
