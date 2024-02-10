@@ -1,18 +1,22 @@
 \section{Introduction}
 
+\subsection{Markov Decision Processes and model checking}
+
+A Markov Decision Process (MDP) is a mathematical model containing deterministic and random elements. An MDP is represented by a set of states $S = \left\{ s_0, s_1, \dots \right\}$ and a set of actions $A = \left\{ a_0, a_1, \dots \right\}$. An action $a \in A$ can be taken in a state $s \in S$, which will result in a transition to a new state $s' \in S$ with a given probability $P(s' \| s, a)$. Given a property such as an expectation value for a given variable or a probability to reach a state, the model can be checked for this property. Existing tools such as Modest \cite{modest} and PRISM \cite{prism} are capable of checking properties in MDPs. Modest contains an extensive set of model checking algorithms such as value iteration, linear programming and Q-learning. In this paper, the latter method will be further elaborated upon. Furthermore, the JANI \cite{jani} format is a standard for representing MDPs and their properties.
+
 \subsection{Q-learning}
 
-Q-learning is a model-free machine learning algorithm used to determine the optimal action for a given initial state. In model checking the Q-value of the optimal (minimal or maximal, depending on the property to be checked) is the solution to the expected value property. The Q-value is initialized to $0$ for all states, and is updated using the following formula:
+Q-learning is a model-free machine learning algorithm used to determine the optimal action for any given state. In model checking the Q-value of the optimal (minimal or maximal, depending on the property to be checked) is the solution to the expected value property. The Q-value is initialized to $0$ for all states, and is updated using formula \ref{eq:q_learning}.
 
-\begin{equation}
+\begin{equation}\label{eq:q_learning}
     Q(s, a) \leftarrow Q(s, a) + \alpha \cdot (r + \gamma \cdot \max_{a'} Q(s', a') - Q(s, a))
 \end{equation}
 
 Here $Q(s, a)$ is the Q-value given state $s$ and action $a$. $\alpha$ is the learning rate, which determines how much the Q-value is updated in relation to the reward the model can optimally gain from state $s$. A high learning rate can lead to faster convergence at best, and overshooting at worst. A low learning rate can lead to slower convergence. $\gamma$ is the discount factor, which determines how much the model values rewards which are further away in the future in relation to rewards which are directly reachable. The Q-value given a state-action pair is updated by the difference between the current Q-value and the new Q-value, which is the sum of the reward $r$ and the maximum Q-value of the next state $s'$ and all possible actions $a'$.
 
-During the process of updating the Q-value, the model can either choose to `explore' or `exploit', the former means the model will take a transition which is not optimal, and the latter means the model will take the optimal transition. The exploration rate $\epsilon$ determines the probability of the model to explore. A high exploration rate can lead to a more accurate value, as Q-values of states which are not optimal are also updated and these can influence the Q-value of the optimal transition. A low exploration rate can lead to a faster convergence, as the model will more often take the optimal transition. The exploration rate is generally gradually decreased over time, as the model becomes more accurate. In this paper, the exploration rate is decreased using the following formula:
+During the process of updating the Q-value, the model can either choose to `explore' or `exploit', the former means the model will take a transition which is not optimal, and the latter means the model will take the optimal transition. The exploration rate $\epsilon$ determines the probability of the model to explore. A high exploration rate can lead to a more accurate value, as Q-values of states which are not optimal are also updated and these can influence the Q-value of the optimal transition. A low exploration rate can lead to a faster convergence, as the model will more often take the optimal transition. The exploration rate is generally gradually decreased over time, as the model becomes more accurate. In this paper, the exploration rate is decreased using formula \ref{eq:epsilon_decay}.
 
-\begin{equation}
+\begin{equation}\label{eq:epsilon_decay}
     \epsilon \leftarrow \epsilon \cdot \epsilon_{decay}
 \end{equation}
 

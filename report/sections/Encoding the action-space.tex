@@ -1,5 +1,5 @@
 \section{Encoding the action-space}
-The output layer of the neural network represents the action space, directly corresponding to one or more Q-values. In the most simple cases where the action space is constant (i.e., for every state, the same actions can be taken regardless of any internal variable values) it is common to output a Q-value for every action. This way all relevant Q-values to decide the next action are calculated at once, and the $argmax$ of the maximum Q-value is the optimal action. The input of the neuron network is a state, the output is a series of Q-values for every possible action in that state.
+The output layer of the neural network represents the action space, directly corresponding to one or more Q-values. In the most simple cases where the action space is constant (i.e., for every state, the same actions can be taken regardless of any internal variable values) it is common to output a Q-value for every action, resulting in a row of output neurons. I.e., every action has a corresponding output neuron and the neural network only has to be evaluated once in order to output this set of Q-values. Then, the $argmax$ the row of Q-values is the optimal action.
 Contrary to regular Q-learning where we are able to expand an ever-increasing Q-table with state-action pairs, the size of the neural network (including the size of the output layer) has to be predefined before the training process. Deep Q-learning is often applied to environments with a constant action space, where its dimensionality is independent of the input state. This is common for games or well-known optimization problems like ``CartPole'', where all transitions (e.g., move left, move right) are always enabled. In the domain of model checking this is untrue in most cases, the enabled transitions vary for the state of the automaton and the values of the state variables which determine the guard values. An alternate method of encoding the action space is therefore to disregard the convention of multiple Q-values as output, and to encode the complete state-action pair as the input layer. The output of the neural network then becomes a single Q-value. In the following section the difficulties in encoding the action-space and the advantages and disadvantages of various methods of encoding the action space are discussed.
 
 \subsubsection{Parallel composition}
@@ -9,13 +9,64 @@ A model can contain multiple parallel automatons, each automaton is in a certain
 In an MDP with multiple independent automatons there exists the possibility for multiple transitions two synchronize. When this occurs all automatons are advanced to the future state in accordance with their appropriate $(s, t, s')$ tuple. Whether and when a transition of a given automaton can synchronize with the transitions of another automaton depends on the synchronization vectors. Given a synchronization vector $(\alpha, -, \beta, \tau)$, automaton $0$ is able to synchronize transition label $\alpha$ with automaton $2$ with transition label $\beta$ and automaton $3$ with transition label $\tau$. However, given one of said automatons, there can be no or multiple transitions enabled with the transition label required for synchronization. Encoding all possible permutations in the action space as a single action each poses the problem of a possible action-space explosion. When encoding the different possible options all falling under the same synchronization vector as the same action will not yield accurate results as action with the same label yet different futures (can) yield different rewards.
 
 \subsection{Solutions}
-When considering a model encoded in the JANI\cite{jani} or Modest\cite{modest} format, the label given to an action has no particular meaning other than human-readability and synchronization. The transition label itself does not provide ample distinction as the model checker allows for an overlap in the transition labels. For example, for a given state there can be multiple outgoing transitions with label $a$, and this label can occur in multiple different automatons. There is no connection between the transitions all identifying as $a$, and training the model in a way that does not discern between these transitions can yield incorrect results. For regular Q-learning this does not pose a problem as we can simply record the command for this specific state in the Q-table, there is no definition collision between this action for this state with similar actions in other states. Furthermore, for a given transition there can be multiple enabled guards in case the guard conditions are overlapping. In this case there are multiple transitions applicable for a given transition label in a state for a given set of variables that are evaluated against a set of guard expressions. Because of this discrepancy between regular Q-learning and Deep Q-learning the output layer should be encoded to account for the varying action space. To achieve this, one can consider multiple potential solutions.
+When considering a model encoded in the JANI \cite{jani} or Modest \cite{modest} format, the label given to an action has no particular meaning other than human-readability and synchronization. The transition label itself does not provide ample distinction as the model checker allows for an overlap in the transition labels. For example, for a given state there can be multiple outgoing transitions with label $a$, and this label can occur in multiple different automatons. There is no connection between the transitions all identifying as $a$, and training the model in a way that does not discern between these transitions can yield incorrect results. For regular Q-learning this does not pose a problem as we can simply record the command for this specific state in the Q-table, there is no definition collision between this action for this state with similar actions in other states. Furthermore, for a given transition there can be multiple enabled guards in case the guard conditions are overlapping. In this case there are multiple transitions applicable for a given transition label in a state for a given set of variables that are evaluated against a set of guard expressions. Because of this discrepancy between regular Q-learning and Deep Q-learning the output layer should be encoded to account for the varying action space. To achieve this, one can consider multiple potential solutions.
 
 \subsubsection{One-to-one mapping of neurons and commands}
 If we consider every command (specifically discerning between overlapping guard expressions like $k \ge 0$ and $k = 0$ which collide at $k = 0$) we end up with a unique output neuron for every possible action the model can take. This means we end up with an action space that grows exponentially with the number of states, as every action in every state adds $n$ actions to the output layer. When considering fully connected layers between the output neurons and the rest of the network this quickly becomes unfeasible when optimizing for large models, and a regular Q-table would be more efficient and more accurate. Additionally we need to consider the problem of choosing a correct action; the output layer contains the predicted Q-values for every action. This includes Q-values for actions which are non-applicable in the state of interest. This is not the case for models with a constant action space and in regular Q-learning, in these cases every Q-value and matching action in the output layer or Q-table can be considered at all times. If we only select a very small subset of the output layers' data, the model will not learn what to do with most neurons in most cases as it's only being tested against some of its outputs at one particular time. There may even be output neurons which are (nearly) never used or validated against because of the chosen scheduler.
 
 \subsubsection{Flattened model representation}
-A possible solution to the issues arising from synchronization is to consider the flattened MDP model instead. Here all the behavior of the individual automatons is expressed as a single main automaton. This has the advantage of not having to account for the different possible transitions required for a transition to synchronize. However, this approach has several caveats. For one, the model that results from the flattening is more complex than the original model. Ideally, there is a method of encoding the state-action pair and its subsequent Q-value in such a way that a non-flattened model would suffice. The behavior of a simple clock, for example, which dictates whether a transition can be taken in another automaton is now embedded in a more complex main automaton.
+When solving for models with multiple automatons, synchronized transitions can pose a problem. In particular, when a transition in one automaton is synchronized with a transition in another automaton, the action space is not only dependent on the state of the automaton, but also on the state of the other automaton. Furthermore, a synchronized transition can span any number of automatons in the model, drastically increasing the complexity of accounting for this behavior in a Deep Q-learning model. Figure \ref*{fig:mdp_parallel} shows an example where two processes $P$ and $Q$ can only take transition $a$ simulatiniously if and only if $P$ is in state $p_1$ and $Q$ is in $q_1$.
+
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[auto,node distance=8mm,>=latex,font=\small]
+      \tikzstyle{round}=[thick,draw=black,circle]
+      
+      \node[round] (p0) {$p_0$};
+      \node[round,above right=0mm and 40mm of p0] (p1) {$p_1$};
+      \node[round,below right=0mm and 40mm of p0] (p2) {$p_2$};
+      
+      \draw[->] (p0) -- node[above] {$b$} (p1);
+      \draw[->] (p1) [out=160,in=20] to node[above] {$\hat{a}$} (p0);
+      \draw[->] (p0) -- node[above] {$c$} (p2);
+
+      \node[round, right=0mm and 50mm of p0] (q0) {$q_0$};
+      \node[round, right=0mm and 30mm of q0] (q1) {$q_1$};
+      
+      \draw[->] (q0) -- node[above] {$d$} (q1);
+      \draw[->] (q1) [out=160,in=20] to node[above] {$\bar{a}$} (q0);
+  \end{tikzpicture}
+  \caption{MDP with two processes $P$ and $Q$, for which transitions $\hat{a}$ and $\bar{a}$ are synchronized. Transition $a$ can be taken in $P$ and transition $a$ can be taken in $Q$ at the same time if both models are in state $p_1$ and $q_1$ respectively.}
+  \label{fig:mdp_parallel}
+\end{figure}
+
+A possible solution to the issues arising from synchronization is to consider the flattened MDP model instead. Here all the behavior of the individual automatons is expressed as a single main automaton. This has the advantage of not having to account for the different possible transitions required for a transition to synchronize. However, this approach has several caveats. For one, the model that results from the flattening is more complex than the original model. Ideally, there is a method of encoding the state-action pair and its subsequent Q-value in such a way that a non-flattened model would suffice. The behavior of a simple clock, for example, which dictates whether a transition can be taken in another automaton is now embedded in a more complex main automaton. Flattening the model in figure \ref{fig:mdp_parallel} results in the model in figure \ref{fig:mdp_flattened}.
+
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[auto,node distance=8mm,>=latex,font=\small]
+      \tikzstyle{round}=[thick,draw=black,circle]
+
+      \node[round] (s0) {$s_0$};
+      \node[round,above right=0mm and 20mm of s0] (s1) {$s_1$};
+      \node[round,below right=0mm and 20mm of s0] (s2) {$s_2$};
+      \node[round,above right=0mm and 20mm of s2] (s3) {$s_3$};
+
+      \node[round,below right=10mm and 20mm of s0] (s4) {$s_4$};
+      \node[round,below right=10mm and 45mm of s0] (s5) {$s_5$};
+
+      \draw[->] (s0) -- node[above] {$b$} (s1);
+      \draw[->] (s0) -- node[above] {$d$} (s2);
+      \draw[->] (s1) -- node[above] {$d$} (s3);
+      \draw[->] (s2) -- node[above] {$b$} (s3);
+      \draw[->] (s3) [out=130,in=50] to node[above] {$a$} (s0);
+      \draw[->] (s0) -- node[above] {$c$} (s4);
+      \draw[->] (s2) -- node[above] {$c$} (s5);
+      \draw[->] (s4) -- node[above] {$d$} (s5);
+  \end{tikzpicture}
+  \caption{Flattened model representation of the model illustrated in figure \ref{fig:mdp_parallel}. This model contains just one automaton, and the behavior of the original model is expressed in this single automaton.}
+  \label{fig:mdp_flattened}
+\end{figure}
 
 Flattening the model results in a single automaton that is strongly bisimilar to the behavior of the separate original automatons. The main advantage of this approach is the negation of the synchronization between the individual automatons, and the simpler encoding of the action space it enables. It also reduces the number of overlapping actions caused by synchronization. For example, if action $a$ in automaton $0$ and action $b$ in automaton $1$ are included in the same synchronization vector, choosing either action will have the same effect on the network; automaton $0$ will take transition $a$ and automaton $1$ will take transition $b$. In the flattened model it is no longer ambiguous which automaton should be addressed, and there is no overlap in actions between different network components.
 
@@ -87,7 +138,7 @@ We can then encode the actions in such a way that there is not a possibility for
         \draw[->] (s0) -- node[above] {$c$} (s2);
         \draw[->] (s0) [out=40,in=100,loop] to node[above] {$a$ [$k > 0$]} (s0);
     \end{tikzpicture}
-    \caption{MDP for which the action space size is $2$ for $k = 0$ and $3$ for $k > 0$, this poses a challenge to encoding the action space in a neural network as action $b$ could potentially be mapped to either output neuron $1$ or output neuron $2$, depending on the value of $k$.}
+    \caption{MDP for which the action space size is $2$ for $k = 0$ and $3$ for the guard $k > 0$, this poses a challenge to encoding the action space in a neural network as action $b$ could potentially be mapped to either output neuron $1$ or output neuron $2$, depending on the value of $k$.}
     \label{fig:mdp_enabled_action_count}
 \end{figure}
 
